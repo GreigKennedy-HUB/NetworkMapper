@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Device Geolocation Mapper</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    
+    h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+    .client-name { color: #22c55e; font-weight: 600; }
+    .connection-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; margin-left: 8px; }
+    .connection-status.connected { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .connection-status.disconnected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .connection-status.connecting { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
+    .btn-success:hover { transform: translateY(-2px); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .btn-secondary:hover, .btn-secondary.active { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+    .btn-warning { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .btn-warning:hover { background: rgba(251, 191, 36, 0.25); }
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn-sm { padding: 6px 12px; font-size: 11px; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+    .stat-card:hover { background: rgba(255, 255, 255, 0.06); transform: translateY(-4px); }
+    .stat-card.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+    .stat-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    
+    .main-content { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+    @media (max-width: 1100px) { .main-content { grid-template-columns: 1fr; } }
+    
+    .map-container { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; overflow: hidden; height: 550px; }
+    #map { height: 100%; width: 100%; }
+    .map-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    
+    .sidebar { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px; max-height: 550px; overflow-y: auto; }
+    .sidebar h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 16px; color: #94a3b8; }
+    
+    .location-summary { padding: 16px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; border-left: 4px solid #22c55e; }
+    .location-summary:hover { background: rgba(255, 255, 255, 0.06); }
+    .location-summary.remote { border-left-color: #f59e0b; }
+    .location-summary.unknown { border-left-color: #94a3b8; }
+    .location-summary h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .location-summary .device-count { background: rgba(255, 255, 255, 0.1); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .location-summary .subnets { font-size: 12px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    
+    .device-list { list-style: none; display: none; }
+    .device-list.expanded { display: block; }
+    .device-item { padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; margin-bottom: 6px; margin-left: 16px; font-size: 12px; border-left: 2px solid rgba(255,255,255,0.1); }
+    .device-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .device-name { font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .device-meta { font-size: 11px; color: #64748b; }
+    
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #1e293b; border-radius: 16px; padding: 32px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .modal-lg { max-width: 900px; }
+    .modal h2 { font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+    .modal p { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select, textarea { width: 100%; padding: 12px 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    input:focus, select:focus { outline: none; border-color: #3b82f6; }
+    
+    .location-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .location-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .location-info h4 { font-size: 14px; margin-bottom: 4px; }
+    .location-info p { font-size: 11px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    
+    .file-drop { border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .file-drop:hover, .file-drop.dragover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .file-drop-icon { font-size: 48px; margin-bottom: 16px; }
+    .file-drop-text { color: #94a3b8; }
+    
+    .subnet-mapping-row { display: grid; grid-template-columns: 140px 70px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #64748b; }
+    .subnet-mapping-row.mapped { border-left-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
+    .subnet-mapping-row .subnet { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .subnet-mapping-row .device-count { font-size: 12px; color: #64748b; }
+    
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .wizard-progress { display: flex; gap: 8px; margin-bottom: 24px; }
+    .wizard-progress-step { flex: 1; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+    .wizard-progress-step.complete { background: #22c55e; }
+    .wizard-progress-step.current { background: #3b82f6; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+    .empty-state-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state h3 { color: #94a3b8; margin-bottom: 8px; }
+    
+    .leaflet-popup-content-wrapper { background: #1e293b; color: #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+    .leaflet-popup-content { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin: 12px; }
+    .leaflet-popup-tip { background: #1e293b; }
+    .popup-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    .popup-row { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 16px; }
+    .popup-label { color: #64748b; }
+    .popup-devices { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .popup-device { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+    
+    .add-office-box { padding: 16px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; margin-top: 16px; }
+    .add-office-box h4 { margin-bottom: 12px; font-size: 14px; }
+    
+    .city-search-container { position: relative; }
+    .city-search-results { position: absolute; top: 100%; left: 0; right: 0; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .city-search-results.active { display: block; }
+    .city-result { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.2s; }
+    .city-result:hover { background: rgba(59, 130, 246, 0.2); }
+    .city-result:last-child { border-bottom: none; }
+    .city-result-name { font-weight: 600; margin-bottom: 2px; }
+    .city-result-detail { font-size: 11px; color: #64748b; }
+    .city-result.online-search { background: rgba(251, 191, 36, 0.1); border-left: 3px solid #fbbf24; }
+    .city-result.manual-entry { background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; }
+    
+    .coords-display { font-size: 12px; color: #22c55e; margin-top: 8px; font-family: 'JetBrains Mono', monospace; padding: 8px 12px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; display: none; }
+    .coords-display.active { display: block; }
+    
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab { padding: 8px 16px; background: rgba(255,255,255,0.05); border: none; color: #64748b; cursor: pointer; border-radius: 6px; font-size: 12px; transition: all 0.2s; }
+    .tab.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .tab:hover { color: #e2e8f0; }
+    
+    .client-list { max-height: 300px; overflow-y: auto; }
+    .client-item { padding: 12px 16px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; border: 1px solid transparent; }
+    .client-item:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+    .client-item.selected { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+    .client-item-name { font-weight: 600; }
+    .client-item-meta { font-size: 11px; color: #64748b; }
+    .client-item-actions { display: flex; gap: 8px; }
+    
+    .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; flex-direction: column; gap: 16px; }
+    .loading-overlay.active { display: flex; }
+    .loading-spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #94a3b8; font-size: 14px; }
+    
+    .delta-summary { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px; margin: 16px 0; }
+    .delta-summary h4 { color: #fbbf24; margin-bottom: 12px; }
+    .delta-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+    .delta-add { color: #22c55e; }
+    .delta-remove { color: #ef4444; }
+    .delta-keep { color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Connecting to SharePoint...</div>
+  </div>
+
+  <div class="container">
+    <header>
+      <div>
+        <h1>🌐 Network Device Geolocation</h1>
+        <p class="subtitle">
+          <span id="client-display">No client loaded</span>
+          <span class="connection-status connecting" id="connection-status">Connecting...</span>
+        </p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="openModal('loadClientModal')">📂 Load Client</button>
+        <button class="btn btn-warning" onclick="newClient()">🆕 New Client</button>
+        <button class="btn btn-success" onclick="saveClient()" id="btn-save" disabled>💾 Save Client</button>
+        <button class="btn btn-secondary" onclick="openModal('officeLibraryModal')">🏢 Office Library</button>
+        <button class="btn btn-secondary" onclick="exportData()" id="btn-export" disabled>📤 Export CSV</button>
+      </div>
+    </header>
+    
+    <div id="empty-state" class="empty-state">
+      <div class="empty-state-icon">📁</div>
+      <h3>No Client Data Loaded</h3>
+      <p>Load an existing client or create a new one to begin.</p>
+      <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+        <button class="btn btn-primary" onclick="openModal('loadClientModal')">📂 Load Existing Client</button>
+        <button class="btn btn-warning" onclick="newClient()">🆕 New Client</button>
+      </div>
+    </div>
+    
+    <div id="main-app" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card active" onclick="filterDevices('all', this)">
+          <div class="stat-value" id="stat-total" style="color: #60a5fa;">0</div>
+          <div class="stat-label">Total Devices</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('office', this)">
+          <div class="stat-value" id="stat-office" style="color: #22c55e;">0</div>
+          <div class="stat-label">Office</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('remote', this)">
+          <div class="stat-value" id="stat-remote" style="color: #f59e0b;">0</div>
+          <div class="stat-label">Remote/Home</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('unknown', this)">
+          <div class="stat-value" id="stat-unknown" style="color: #94a3b8;">0</div>
+          <div class="stat-label">Unmapped</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-locations" style="color: #a78bfa;">0</div>
+          <div class="stat-label">Locations</div>
+        </div>
+      </div>
+      
+      <div class="main-content">
+        <div>
+          <div class="map-controls">
+            <button class="btn btn-secondary active" id="btn-locations" onclick="setViewMode('locations')">📍 Location View</button>
+            <button class="btn btn-secondary" id="btn-devices" onclick="setViewMode('devices')">🔘 Device View</button>
+            <button class="btn btn-secondary" onclick="refreshMap()" title="Fix map display issues">🔄 Refresh Map</button>
+            <button class="btn btn-secondary" onclick="openModal('subnetModal')" style="margin-left: auto;">⚙️ Edit Mappings</button>
+          </div>
+          <div class="map-container"><div id="map"></div></div>
+        </div>
+        <div class="sidebar">
+          <h3>📍 Locations (<span id="location-count">0</span>)</h3>
+          <div id="location-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Load Client Modal -->
+  <div class="modal-overlay" id="loadClientModal">
+    <div class="modal">
+      <h2>📂 Load Client</h2>
+      <p>Select a client to load their saved subnet mappings and devices.</p>
+      
+      <div class="client-list" id="client-list">
+        <div style="text-align: center; padding: 20px; color: #64748b;">Loading clients...</div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('loadClientModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="loadSelectedClient()" id="btn-load-client" disabled>Load Client</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- New Client / Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal modal-lg">
+      <div class="wizard-progress">
+        <div class="wizard-progress-step current" id="progress-1"></div>
+        <div class="wizard-progress-step" id="progress-2"></div>
+        <div class="wizard-progress-step" id="progress-3"></div>
+      </div>
+      
+      <div class="wizard-step active" id="wizard-step-1">
+        <h2>📥 Step 1: Client & Data Import</h2>
+        <p>Enter a client name and upload their network discovery file.</p>
+        <div class="form-group">
+          <label>Client Name</label>
+          <input type="text" id="client-name" placeholder="e.g., ABC Corporation">
+        </div>
+        <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+          <div class="file-drop-icon">📁</div>
+          <div class="file-drop-text"><strong>Click to select</strong> or drag & drop Excel file<br><small>Supports .xlsx files</small></div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+        <div id="import-preview" style="display: none; margin-top: 20px;">
+          <h4 style="margin-bottom: 12px; color: #22c55e;">✓ Found <span id="preview-count">0</span> devices</h4>
+          <div style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; font-size: 12px;"><div id="preview-subnets"></div></div>
+        </div>
+        <div id="delta-preview" style="display: none;"></div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+          <button class="btn btn-primary" id="btn-next-1" onclick="wizardNext(1)" disabled>Next: Map Subnets →</button>
+        </div>
+      </div>
+      
+      <div class="wizard-step" id="wizard-step-2">
+        <h2>🗺️ Step 2: Map Subnets to Locations</h2>
+        <p>Assign each detected subnet to an office location.</p>
+        <div id="subnet-mapping-list"></div>
+        <div class="add-office-box">
+          <h4>➕ Add New Office Location</h4>
+          <div class="tabs">
+            <button class="tab active" onclick="switchAddMode('search', 'quick')">🔍 Search City</button>
+            <button class="tab" onclick="switchAddMode('manual', 'quick')">✏️ Manual Entry</button>
+          </div>
+          <div id="quick-search-mode">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Search City</label>
+              <div class="city-search-container">
+                <input type="text" id="quick-city-search" placeholder="Type city name (e.g., Dallas, TX)..." oninput="handleCitySearch(this.value, 'quick')">
+                <div class="city-search-results" id="quick-search-results"></div>
+              </div>
+            </div>
+          </div>
+          <div id="quick-manual-mode" style="display: none;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>City / Location Name</label>
+              <input type="text" id="quick-manual-city" placeholder="e.g., Smalltown, TX">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group" style="margin: 0;">
+                <label>Latitude</label>
+                <input type="text" id="quick-manual-lat" placeholder="e.g., 32.7767">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label>Longitude</label>
+                <input type="text" id="quick-manual-lng" placeholder="e.g., -96.7970">
+              </div>
+            </div>
+            <p style="font-size: 11px; color: #64748b; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
+          </div>
+          <div class="coords-display" id="quick-coords-display"></div>
+          <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; align-items: end;">
+            <div class="form-group" style="margin: 0;">
+              <label>Office Name</label>
+              <input type="text" id="quick-office-name" placeholder="e.g., Dallas Office">
+            </div>
+            <button class="btn btn-primary" onclick="quickAddOffice()" id="btn-quick-add">+ Add</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="wizardBack(2)">← Back</button>
+          <button class="btn btn-success" onclick="wizardNext(2)">Finish & View Map →</button>
+        </div>
+      </div>
+      
+      <div class="wizard-step" id="wizard-step-3">
+        <h2>✅ Import Complete!</h2>
+        <p>Your client data has been loaded and mapped.</p>
+        <div id="import-summary" style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px; margin: 20px 0;"></div>
+        <div class="modal-actions">
+          <button class="btn btn-success" onclick="finishImport()">View Map →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Subnet Mapping Modal -->
+  <div class="modal-overlay" id="subnetModal">
+    <div class="modal modal-lg">
+      <h2>⚙️ Edit Subnet Mappings</h2>
+      <p>Modify subnet-to-location assignments for the current client.</p>
+      <div id="edit-subnet-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('subnetModal')">Done</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Office Library Modal -->
+  <div class="modal-overlay" id="officeLibraryModal">
+    <div class="modal">
+      <h2>🏢 Office Location Library</h2>
+      <p>Shared library of office locations. Changes sync to all users.</p>
+      <div class="location-grid" id="office-library-list"></div>
+      
+      <h4 style="margin: 20px 0 12px;">Add New Office</h4>
+      <div class="tabs">
+        <button class="tab active" onclick="switchAddMode('search', 'library')">🔍 Search City</button>
+        <button class="tab" onclick="switchAddMode('manual', 'library')">✏️ Manual Entry</button>
+      </div>
+      <div id="library-search-mode">
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Search City</label>
+          <div class="city-search-container">
+            <input type="text" id="library-city-search" placeholder="Type city name..." oninput="handleCitySearch(this.value, 'library')">
+            <div class="city-search-results" id="library-search-results"></div>
+          </div>
+        </div>
+      </div>
+      <div id="library-manual-mode" style="display: none;">
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>City / Location Name</label>
+          <input type="text" id="library-manual-city" placeholder="e.g., Smalltown, TX">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label>Latitude</label>
+            <input type="text" id="library-manual-lat" placeholder="e.g., 32.7767">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Longitude</label>
+            <input type="text" id="library-manual-lng" placeholder="e.g., -96.7970">
+          </div>
+        </div>
+        <p style="font-size: 11px; color: #64748b; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
+      </div>
+      <div class="coords-display" id="library-coords-display"></div>
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; align-items: end;">
+        <div class="form-group" style="margin: 0;">
+          <label>Office Name</label>
+          <input type="text" id="library-office-name" placeholder="e.g., Chicago HQ">
+        </div>
+        <button class="btn btn-primary" onclick="addOfficeToLibrary()" id="btn-library-add">+ Add</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('officeLibraryModal')">Done</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal" style="max-width: 450px;">
+      <h2>⚠️ Delete Client</h2>
+      <p>Are you sure you want to delete "<span id="delete-client-name"></span>"? This will remove all saved mappings and devices for this client. This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteClient()">Delete Client</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ==================== CONFIGURATION ====================
+    const SHAREPOINT_CONFIG = {
+      siteUrl: 'https://hubinternational4.sharepoint.com/teams/MAIIDD',
+      lists: {
+        offices: 'OfficeLocations',
+        clients: 'Clients',
+        mappings: 'ClientMappings',
+        devices: 'ClientDevices'
+      }
+    };
+    
+    // ==================== CITY DATABASE ====================
+    const cityDatabase = [
+      { city: "New York", state: "NY", country: "USA", lat: 40.7128, lng: -74.0060 },
+      { city: "Los Angeles", state: "CA", country: "USA", lat: 34.0522, lng: -118.2437 },
+      { city: "Chicago", state: "IL", country: "USA", lat: 41.8781, lng: -87.6298 },
+      { city: "Houston", state: "TX", country: "USA", lat: 29.7604, lng: -95.3698 },
+      { city: "Phoenix", state: "AZ", country: "USA", lat: 33.4484, lng: -112.0740 },
+      { city: "Philadelphia", state: "PA", country: "USA", lat: 39.9526, lng: -75.1652 },
+      { city: "San Antonio", state: "TX", country: "USA", lat: 29.4241, lng: -98.4936 },
+      { city: "San Diego", state: "CA", country: "USA", lat: 32.7157, lng: -117.1611 },
+      { city: "Dallas", state: "TX", country: "USA", lat: 32.7767, lng: -96.7970 },
+      { city: "Austin", state: "TX", country: "USA", lat: 30.2672, lng: -97.7431 },
+      { city: "San Francisco", state: "CA", country: "USA", lat: 37.7749, lng: -122.4194 },
+      { city: "Seattle", state: "WA", country: "USA", lat: 47.6062, lng: -122.3321 },
+      { city: "Denver", state: "CO", country: "USA", lat: 39.7392, lng: -104.9903 },
+      { city: "Boston", state: "MA", country: "USA", lat: 42.3601, lng: -71.0589 },
+      { city: "Atlanta", state: "GA", country: "USA", lat: 33.7490, lng: -84.3880 },
+      { city: "Miami", state: "FL", country: "USA", lat: 25.7617, lng: -80.1918 },
+      { city: "Minneapolis", state: "MN", country: "USA", lat: 44.9778, lng: -93.2650 },
+      { city: "Detroit", state: "MI", country: "USA", lat: 42.3314, lng: -83.0458 },
+      { city: "Portland", state: "OR", country: "USA", lat: 45.5152, lng: -122.6784 },
+      { city: "Las Vegas", state: "NV", country: "USA", lat: 36.1699, lng: -115.1398 },
+      { city: "Indianapolis", state: "IN", country: "USA", lat: 39.7684, lng: -86.1581 },
+      { city: "Merrillville", state: "IN", country: "USA", lat: 41.4828, lng: -87.3328 },
+      { city: "Gary", state: "IN", country: "USA", lat: 41.5934, lng: -87.3464 },
+      { city: "Fort Wayne", state: "IN", country: "USA", lat: 41.0793, lng: -85.1394 },
+      { city: "South Bend", state: "IN", country: "USA", lat: 41.6764, lng: -86.2520 },
+      { city: "Evansville", state: "IN", country: "USA", lat: 37.9716, lng: -87.5711 },
+      { city: "Carmel", state: "IN", country: "USA", lat: 39.9784, lng: -86.1180 },
+      { city: "Toronto", state: "ON", country: "Canada", lat: 43.6532, lng: -79.3832 },
+      { city: "Vancouver", state: "BC", country: "Canada", lat: 49.2827, lng: -123.1207 },
+      { city: "Montreal", state: "QC", country: "Canada", lat: 45.5017, lng: -73.5673 },
+      { city: "Calgary", state: "AB", country: "Canada", lat: 51.0447, lng: -114.0719 },
+    ];
+    
+    // ==================== STATE ====================
+    let devices = [];
+    let pendingImport = [];
+    let detectedSubnets = [];
+    let currentFilter = 'all';
+    let viewMode = 'locations';
+    let expandedLocations = new Set();
+    let clientName = '';
+    let clientId = null;
+    let selectedCoords = { quick: null, library: null };
+    let addMode = { quick: 'search', library: 'search' };
+    let subnetMappings = [];
+    let officeLibrary = [];
+    let savedClients = [];
+    let selectedClientToLoad = null;
+    let clientToDelete = null;
+    let isConnected = false;
+    let existingDeviceIPs = new Set();
+    let isUpdatingClient = false;
+    
+    // ==================== SHAREPOINT API ====================
+    
+    function showLoading(text = 'Loading...') {
+      document.getElementById('loading-text').textContent = text;
+      document.getElementById('loading-overlay').classList.add('active');
+    }
+    
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.remove('active');
+    }
+    
+    function updateConnectionStatus(status) {
+      const el = document.getElementById('connection-status');
+      el.className = 'connection-status ' + status;
+      el.textContent = status === 'connected' ? '● Connected to SharePoint' : status === 'connecting' ? '○ Connecting...' : '✕ Disconnected';
+      isConnected = status === 'connected';
+    }
+    
+    async function getRequestDigest() {
+      const response = await fetch(`${SHAREPOINT_CONFIG.siteUrl}/_api/contextinfo`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json;odata=verbose' },
+        credentials: 'include'
+      });
+      const data = await response.json();
+      return data.d.GetContextWebInformation.FormDigestValue;
+    }
+    
+    async function spGet(listName, query = '') {
+      const url = `${SHAREPOINT_CONFIG.siteUrl}/_api/web/lists/getbytitle('${listName}')/items${query}`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json;odata=verbose' },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error(`Failed to fetch ${listName}`);
+      const data = await response.json();
+      return data.d.results;
+    }
+    
+    async function spAdd(listName, item) {
+      const digest = await getRequestDigest();
+      const response = await fetch(`${SHAREPOINT_CONFIG.siteUrl}/_api/web/lists/getbytitle('${listName}')/items`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=verbose',
+          'Content-Type': 'application/json;odata=verbose',
+          'X-RequestDigest': digest
+        },
+        credentials: 'include',
+        body: JSON.stringify(item)
+      });
+      if (!response.ok) throw new Error(`Failed to add to ${listName}`);
+      const data = await response.json();
+      return data.d;
+    }
+    
+    async function spDelete(listName, itemId) {
+      const digest = await getRequestDigest();
+      const response = await fetch(`${SHAREPOINT_CONFIG.siteUrl}/_api/web/lists/getbytitle('${listName}')/items(${itemId})`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=verbose',
+          'X-RequestDigest': digest,
+          'IF-MATCH': '*',
+          'X-HTTP-Method': 'DELETE'
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error(`Failed to delete from ${listName}`);
+    }
+    
+    async function spDeleteWhere(listName, filterQuery) {
+      const items = await spGet(listName, `?$filter=${encodeURIComponent(filterQuery)}`);
+      for (const item of items) {
+        await spDelete(listName, item.Id);
+      }
+      return items.length;
+    }
+    
+    // ==================== INIT ====================
+    
+    async function init() {
+      updateConnectionStatus('connecting');
+      try {
+        // Test connection by fetching offices
+        officeLibrary = await loadOffices();
+        updateConnectionStatus('connected');
+        hideLoading();
+      } catch (err) {
+        console.error('SharePoint connection failed:', err);
+        updateConnectionStatus('disconnected');
+        hideLoading();
+        alert('Could not connect to SharePoint. Please ensure you are logged in and have access to the site.\n\nError: ' + err.message);
+      }
+    }
+    
+    async function loadOffices() {
+      const items = await spGet(SHAREPOINT_CONFIG.lists.offices);
+      return items.map(item => ({
+        id: item.Id,
+        name: item.Title,
+        lat: item.Latitude,
+        lng: item.Longitude
+      }));
+    }
+    
+    async function loadClients() {
+      const items = await spGet(SHAREPOINT_CONFIG.lists.clients, '?$orderby=Modified desc');
+      return items.map(item => ({
+        id: item.Id,
+        name: item.Title,
+        created: item.Created,
+        modified: item.Modified
+      }));
+    }
+    
+    async function loadClientData(clientNameToLoad) {
+      showLoading(`Loading ${clientNameToLoad}...`);
+      
+      // Load mappings
+      const mappings = await spGet(SHAREPOINT_CONFIG.lists.mappings, `?$filter=ClientName eq '${encodeURIComponent(clientNameToLoad)}'`);
+      subnetMappings = mappings.map(m => ({
+        id: m.Id,
+        subnet: m.Title,
+        location: m.OfficeName,
+        type: m.MappingType.toLowerCase()
+      }));
+      
+      // Load devices
+      const deviceItems = await spGet(SHAREPOINT_CONFIG.lists.devices, `?$filter=ClientName eq '${encodeURIComponent(clientNameToLoad)}'&$top=5000`);
+      devices = deviceItems.map(d => ({
+        id: d.Id,
+        name: d.Title,
+        ip: d.IPAddress,
+        mac: d.MACAddress || '',
+        type: d.DeviceType || '',
+        manufacturer: d.Manufacturer || '',
+        os: d.OperatingSystem || ''
+      }));
+      
+      // Classify devices based on loaded mappings
+      devices = devices.map(d => ({ ...d, ...classifyDevice(d.ip) }));
+      
+      // Track existing IPs for delta handling
+      existingDeviceIPs = new Set(devices.map(d => d.ip));
+      
+      hideLoading();
+    }
+    
+    // ==================== SAVE CLIENT ====================
+    
+    async function saveClient() {
+      if (!clientName) {
+        alert('No client loaded');
+        return;
+      }
+      
+      showLoading(`Saving ${clientName}...`);
+      
+      try {
+        // Check if client exists
+        const existingClients = await spGet(SHAREPOINT_CONFIG.lists.clients, `?$filter=Title eq '${encodeURIComponent(clientName)}'`);
+        
+        if (existingClients.length === 0) {
+          // Create new client
+          await spAdd(SHAREPOINT_CONFIG.lists.clients, {
+            '__metadata': { 'type': `SP.Data.${SHAREPOINT_CONFIG.lists.clients}ListItem` },
+            'Title': clientName
+          });
+        }
+        
+        // Delete existing mappings for this client
+        await spDeleteWhere(SHAREPOINT_CONFIG.lists.mappings, `ClientName eq '${clientName}'`);
+        
+        // Delete existing devices for this client
+        await spDeleteWhere(SHAREPOINT_CONFIG.lists.devices, `ClientName eq '${clientName}'`);
+        
+        // Save new mappings
+        for (const mapping of subnetMappings) {
+          await spAdd(SHAREPOINT_CONFIG.lists.mappings, {
+            '__metadata': { 'type': `SP.Data.${SHAREPOINT_CONFIG.lists.mappings}ListItem` },
+            'Title': mapping.subnet,
+            'ClientName': clientName,
+            'OfficeName': mapping.location,
+            'MappingType': mapping.type.charAt(0).toUpperCase() + mapping.type.slice(1)
+          });
+        }
+        
+        // Save devices (batch for performance)
+        for (const device of devices) {
+          await spAdd(SHAREPOINT_CONFIG.lists.devices, {
+            '__metadata': { 'type': `SP.Data.${SHAREPOINT_CONFIG.lists.devices}ListItem` },
+            'Title': device.name.substring(0, 255),
+            'ClientName': clientName,
+            'IPAddress': device.ip,
+            'MACAddress': device.mac || '',
+            'DeviceType': device.type || '',
+            'Manufacturer': device.manufacturer || '',
+            'OperatingSystem': device.os || ''
+          });
+        }
+        
+        hideLoading();
+        alert(`Saved ${devices.length} devices and ${subnetMappings.length} subnet mappings for "${clientName}"`);
+        
+      } catch (err) {
+        hideLoading();
+        console.error('Save failed:', err);
+        alert('Failed to save: ' + err.message);
+      }
+    }
+    
+    // ==================== LOAD CLIENT ====================
+    
+    async function openLoadClientModal() {
+      const modal = document.getElementById('loadClientModal');
+      modal.classList.add('active');
+      
+      const listEl = document.getElementById('client-list');
+      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">Loading clients...</div>';
+      
+      try {
+        savedClients = await loadClients();
+        
+        if (savedClients.length === 0) {
+          listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">No saved clients found.</div>';
+        } else {
+          listEl.innerHTML = savedClients.map(c => `
+            <div class="client-item" onclick="selectClientToLoad('${c.name}')" id="client-${c.id}">
+              <div>
+                <div class="client-item-name">${c.name}</div>
+                <div class="client-item-meta">Modified: ${new Date(c.modified).toLocaleDateString()}</div>
+              </div>
+              <div class="client-item-actions">
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); promptDeleteClient('${c.name}')">🗑️</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        listEl.innerHTML = `<div style="text-align: center; padding: 20px; color: #ef4444;">Error loading clients: ${err.message}</div>`;
+      }
+    }
+    
+    function selectClientToLoad(name) {
+      selectedClientToLoad = name;
+      document.querySelectorAll('.client-item').forEach(el => el.classList.remove('selected'));
+      const selectedEl = [...document.querySelectorAll('.client-item')].find(el => el.querySelector('.client-item-name').textContent === name);
+      if (selectedEl) selectedEl.classList.add('selected');
+      document.getElementById('btn-load-client').disabled = false;
+    }
+    
+    async function loadSelectedClient() {
+      if (!selectedClientToLoad) return;
+      
+      closeModal('loadClientModal');
+      
+      try {
+        await loadClientData(selectedClientToLoad);
+        clientName = selectedClientToLoad;
+        
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span>`;
+        document.getElementById('btn-save').disabled = false;
+        document.getElementById('btn-export').disabled = false;
+        
+        renderAll();
+        setTimeout(() => { if (markers.getLayers().length > 0) { const b = markers.getBounds(); if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 8 }); } }, 100);
+        
+      } catch (err) {
+        alert('Failed to load client: ' + err.message);
+      }
+      
+      selectedClientToLoad = null;
+    }
+    
+    // ==================== DELETE CLIENT ====================
+    
+    function promptDeleteClient(name) {
+      clientToDelete = name;
+      document.getElementById('delete-client-name').textContent = name;
+      openModal('deleteConfirmModal');
+    }
+    
+    async function confirmDeleteClient() {
+      if (!clientToDelete) return;
+      
+      closeModal('deleteConfirmModal');
+      showLoading(`Deleting ${clientToDelete}...`);
+      
+      try {
+        // Delete from Clients list
+        await spDeleteWhere(SHAREPOINT_CONFIG.lists.clients, `Title eq '${clientToDelete}'`);
+        // Delete mappings
+        await spDeleteWhere(SHAREPOINT_CONFIG.lists.mappings, `ClientName eq '${clientToDelete}'`);
+        // Delete devices
+        await spDeleteWhere(SHAREPOINT_CONFIG.lists.devices, `ClientName eq '${clientToDelete}'`);
+        
+        hideLoading();
+        
+        // If we deleted the currently loaded client, clear the view
+        if (clientName === clientToDelete) {
+          newClientReset();
+        }
+        
+        // Refresh the client list
+        closeModal('loadClientModal');
+        openLoadClientModal();
+        
+      } catch (err) {
+        hideLoading();
+        alert('Failed to delete: ' + err.message);
+      }
+      
+      clientToDelete = null;
+    }
+    
+    // ==================== MAP SETUP ====================
+    const map = L.map('map').setView([39.8283, -98.5795], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+    let markers = L.layerGroup().addTo(map);
+    
+    function refreshMap() {
+      map.invalidateSize();
+      setTimeout(() => { map.invalidateSize(); if (markers.getLayers().length > 0) { const b = markers.getBounds(); if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 10 }); } }, 100);
+    }
+    
+    // ==================== CORE FUNCTIONS ====================
+    function normalizeSubnet(subnet) { return subnet.replace(/\.\*+/g, '').replace(/\*+/g, '').replace(/\.+$/, '').trim(); }
+    function getSubnetFromIP(ip) { const parts = ip.split('.'); return parts.length >= 3 ? parts.slice(0, 3).join('.') : ip; }
+    
+    function classifyDevice(ip) {
+      for (const mapping of subnetMappings) {
+        const normalizedSubnet = normalizeSubnet(mapping.subnet);
+        if (ip.startsWith(normalizedSubnet + '.') || ip === normalizedSubnet) {
+          const office = officeLibrary.find(o => o.name === mapping.location);
+          return { classification: mapping.type === 'office' ? 'Office' : 'Remote/Home', location: mapping.location, lat: office?.lat, lng: office?.lng };
+        }
+      }
+      return { classification: 'Unknown', location: 'Unmapped', lat: null, lng: null };
+    }
+    
+    function getDevicesByLocation() {
+      const groups = {};
+      devices.forEach(d => {
+        const loc = d.location || 'Unmapped';
+        if (!groups[loc]) groups[loc] = { name: loc, devices: [], classification: d.classification, lat: d.lat, lng: d.lng, subnets: new Set() };
+        groups[loc].devices.push(d);
+        groups[loc].subnets.add(getSubnetFromIP(d.ip));
+      });
+      return Object.values(groups);
+    }
+    
+    function updateDeviceClassifications() {
+      devices = devices.map(d => ({ ...d, ...classifyDevice(d.ip) }));
+      renderAll();
+    }
+    
+    // ==================== NEW CLIENT ====================
+    function newClient() {
+      if (devices.length > 0 && !confirm('Start a new client? Unsaved changes will be lost.')) return;
+      newClientReset();
+      openModal('importModal');
+    }
+    
+    function newClientReset() {
+      devices = []; pendingImport = []; detectedSubnets = []; subnetMappings = []; clientName = ''; clientId = null; currentFilter = 'all'; expandedLocations.clear(); existingDeviceIPs.clear(); isUpdatingClient = false;
+      document.getElementById('empty-state').style.display = 'block';
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('client-display').textContent = 'No client loaded';
+      document.getElementById('btn-save').disabled = true;
+      document.getElementById('btn-export').disabled = true;
+      markers.clearLayers();
+    }
+    
+    // ==================== MODALS ====================
+    function openModal(id) {
+      if (id === 'loadClientModal') {
+        openLoadClientModal();
+        return;
+      }
+      document.getElementById(id).classList.add('active');
+      if (id === 'officeLibraryModal') renderOfficeLibrary();
+      if (id === 'subnetModal') renderEditSubnetList();
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      if (id === 'subnetModal') updateDeviceClassifications();
+      if (id === 'loadClientModal') { selectedClientToLoad = null; document.getElementById('btn-load-client').disabled = true; }
+    }
+    
+    function closeImportModal() { document.getElementById('importModal').classList.remove('active'); resetWizard(); }
+    
+    function resetWizard() {
+      document.querySelectorAll('.wizard-step').forEach((s, i) => s.classList.toggle('active', i === 0));
+      document.querySelectorAll('.wizard-progress-step').forEach((s, i) => { s.classList.remove('complete', 'current'); if (i === 0) s.classList.add('current'); });
+      document.getElementById('import-preview').style.display = 'none';
+      document.getElementById('delta-preview').style.display = 'none';
+      document.getElementById('btn-next-1').disabled = true;
+      document.getElementById('client-name').value = '';
+      document.getElementById('file-input').value = '';
+      document.getElementById('quick-city-search').value = '';
+      document.getElementById('quick-office-name').value = '';
+      document.getElementById('quick-coords-display').classList.remove('active');
+      selectedCoords.quick = null;
+      pendingImport = []; detectedSubnets = [];
+      switchAddMode('search', 'quick');
+    }
+    
+    function wizardNext(step) {
+      if (step === 1) {
+        clientName = document.getElementById('client-name').value.trim() || 'Unnamed Client';
+        const subnetCounts = {};
+        pendingImport.forEach(d => { const s = getSubnetFromIP(d.ip); subnetCounts[s] = (subnetCounts[s] || 0) + 1; });
+        detectedSubnets = Object.entries(subnetCounts).map(([subnet, count]) => ({ subnet, count })).sort((a, b) => b.count - a.count);
+        renderSubnetMappingList();
+      }
+      if (step === 2) {
+        // Collect mappings
+        subnetMappings = [];
+        detectedSubnets.forEach((s, i) => {
+          const sel = document.getElementById(`subnet-loc-${i}`);
+          const type = document.getElementById(`subnet-type-${i}`);
+          if (sel?.value) subnetMappings.push({ subnet: s.subnet, location: sel.value, type: type?.value || 'office' });
+        });
+        
+        // Merge with existing devices if updating
+        if (isUpdatingClient && existingDeviceIPs.size > 0) {
+          // Keep existing devices that aren't in new import
+          const newIPs = new Set(pendingImport.map(d => d.ip));
+          const keptDevices = devices.filter(d => !newIPs.has(d.ip));
+          // Add new/updated devices from import
+          devices = [...keptDevices, ...pendingImport];
+        } else {
+          devices = pendingImport;
+        }
+        
+        // Classify all devices
+        devices = devices.map(d => ({ ...d, ...classifyDevice(d.ip) }));
+        pendingImport = [];
+        
+        const groups = getDevicesByLocation();
+        const mapped = devices.filter(d => d.classification !== 'Unknown').length;
+        document.getElementById('import-summary').innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+            <div><div style="font-size: 28px; font-weight: 700; color: #60a5fa;">${devices.length}</div><div style="font-size: 12px; color: #64748b;">Total Devices</div></div>
+            <div><div style="font-size: 28px; font-weight: 700; color: #22c55e;">${mapped}</div><div style="font-size: 12px; color: #64748b;">Mapped</div></div>
+            <div><div style="font-size: 28px; font-weight: 700; color: #a78bfa;">${groups.filter(g => g.lat).length}</div><div style="font-size: 12px; color: #64748b;">Locations</div></div>
+          </div>`;
+      }
+      document.getElementById(`wizard-step-${step}`).classList.remove('active');
+      document.getElementById(`wizard-step-${step + 1}`).classList.add('active');
+      document.getElementById(`progress-${step}`).classList.remove('current');
+      document.getElementById(`progress-${step}`).classList.add('complete');
+      document.getElementById(`progress-${step + 1}`).classList.add('current');
+    }
+    
+    function wizardBack(step) {
+      document.getElementById(`wizard-step-${step}`).classList.remove('active');
+      document.getElementById(`wizard-step-${step - 1}`).classList.add('active');
+      document.getElementById(`progress-${step}`).classList.remove('current');
+      document.getElementById(`progress-${step - 1}`).classList.remove('complete');
+      document.getElementById(`progress-${step - 1}`).classList.add('current');
+    }
+    
+    function finishImport() {
+      closeImportModal(); resetWizard();
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span>`;
+      document.getElementById('btn-save').disabled = false;
+      document.getElementById('btn-export').disabled = false;
+      renderAll();
+      setTimeout(() => { if (markers.getLayers().length > 0) { const b = markers.getBounds(); if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 8 }); } }, 100);
+    }
+    
+    function renderSubnetMappingList() {
+      document.getElementById('subnet-mapping-list').innerHTML = detectedSubnets.map((s, i) => {
+        // Check if we have an existing mapping for this subnet
+        const existingMapping = subnetMappings.find(m => m.subnet === s.subnet);
+        return `
+        <div class="subnet-mapping-row ${existingMapping ? 'mapped' : ''}" id="subnet-row-${i}">
+          <div class="subnet">${s.subnet}.*</div>
+          <div class="device-count">${s.count} devices</div>
+          <select id="subnet-loc-${i}" onchange="document.getElementById('subnet-row-${i}').classList.toggle('mapped', this.value)">
+            <option value="">-- Select --</option>
+            ${officeLibrary.map(o => `<option value="${o.name}" ${existingMapping?.location === o.name ? 'selected' : ''}>${o.name}</option>`).join('')}
+          </select>
+          <select id="subnet-type-${i}" style="width: 90px;">
+            <option value="office" ${existingMapping?.type === 'office' ? 'selected' : ''}>Office</option>
+            <option value="remote" ${existingMapping?.type === 'remote' ? 'selected' : ''}>Remote</option>
+          </select>
+        </div>
+      `}).join('');
+    }
+    
+    // ==================== CITY SEARCH ====================
+    function searchCitiesLocal(query) {
+      if (!query || query.length < 2) return [];
+      const q = query.toLowerCase();
+      return cityDatabase.filter(c => `${c.city} ${c.state} ${c.country}`.toLowerCase().includes(q)).slice(0, 6);
+    }
+    
+    async function searchCitiesOnline(query) {
+      try {
+        const response = await fetch(`https://geocode.maps.co/search?q=${encodeURIComponent(query)}&api_key=demo`);
+        if (!response.ok) throw new Error('API error');
+        const results = await response.json();
+        return results.slice(0, 5).map(r => ({ city: r.display_name.split(',')[0], fullName: r.display_name, lat: parseFloat(r.lat), lng: parseFloat(r.lon), isOnline: true }));
+      } catch (e) { return []; }
+    }
+    
+    function handleCitySearch(query, context) {
+      const resultsEl = document.getElementById(`${context}-search-results`);
+      if (!query || query.length < 2) { resultsEl.classList.remove('active'); return; }
+      const localResults = searchCitiesLocal(query);
+      let html = localResults.map((c, i) => `<div class="city-result" onclick="selectCity('${context}', 'local', ${i})"><div class="city-result-name">${c.city}, ${c.state}</div><div class="city-result-detail">${c.country} • ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div></div>`).join('');
+      html += `<div class="city-result online-search" onclick="searchOnline('${context}', '${query.replace(/'/g, "\\'")}')"><div class="city-result-name">🔍 Search online for "${query}"</div><div class="city-result-detail">Find cities not in the local database</div></div>`;
+      html += `<div class="city-result manual-entry" onclick="switchAddMode('manual', '${context}')"><div class="city-result-name">✏️ Enter coordinates manually</div><div class="city-result-detail">For locations not found in search</div></div>`;
+      resultsEl.innerHTML = html;
+      window[`${context}LocalResults`] = localResults;
+      resultsEl.classList.add('active');
+    }
+    
+    async function searchOnline(context, query) {
+      const resultsEl = document.getElementById(`${context}-search-results`);
+      resultsEl.innerHTML = '<div style="padding: 12px; color: #64748b; text-align: center;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Searching online...</div>';
+      const onlineResults = await searchCitiesOnline(query);
+      if (onlineResults.length === 0) {
+        resultsEl.classList.remove('active');
+        switchAddMode('manual', context);
+        document.getElementById(`${context}-manual-city`).value = query;
+        document.getElementById(`${context}-office-name`).value = query + ' Office';
+        const coordsDisplay = document.getElementById(`${context}-coords-display`);
+        coordsDisplay.innerHTML = '⚠️ City not found online. Please enter coordinates manually.';
+        coordsDisplay.classList.add('active');
+        coordsDisplay.style.color = '#fbbf24';
+        coordsDisplay.style.background = 'rgba(251, 191, 36, 0.1)';
+        return;
+      }
+      resultsEl.innerHTML = onlineResults.map((c, i) => `<div class="city-result" onclick="selectCity('${context}', 'online', ${i})"><div class="city-result-name">${c.city}</div><div class="city-result-detail">${c.fullName.substring(0, 50)}... • ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div></div>`).join('') + `<div class="city-result manual-entry" onclick="switchAddMode('manual', '${context}')"><div class="city-result-name">✏️ Enter coordinates manually</div></div>`;
+      window[`${context}OnlineResults`] = onlineResults;
+    }
+    
+    function selectCity(context, source, index) {
+      const results = source === 'local' ? window[`${context}LocalResults`] : window[`${context}OnlineResults`];
+      if (!results?.[index]) return;
+      const city = results[index];
+      selectedCoords[context] = { lat: city.lat, lng: city.lng };
+      document.getElementById(`${context}-city-search`).value = source === 'local' ? `${city.city}, ${city.state}, ${city.country}` : city.fullName?.substring(0, 40) || city.city;
+      const coordsDisplay = document.getElementById(`${context}-coords-display`);
+      coordsDisplay.textContent = `✓ Coordinates: ${city.lat.toFixed(4)}, ${city.lng.toFixed(4)}`;
+      coordsDisplay.classList.add('active');
+      coordsDisplay.style.color = '#22c55e';
+      coordsDisplay.style.background = 'rgba(34, 197, 94, 0.1)';
+      if (!document.getElementById(`${context}-office-name`).value) document.getElementById(`${context}-office-name`).value = `${city.city} Office`;
+      document.getElementById(`${context}-search-results`).classList.remove('active');
+    }
+    
+    function switchAddMode(mode, context) {
+      addMode[context] = mode;
+      document.getElementById(`${context}-search-mode`).style.display = mode === 'search' ? 'block' : 'none';
+      document.getElementById(`${context}-manual-mode`).style.display = mode === 'manual' ? 'block' : 'none';
+      document.getElementById(`${context}-search-results`).classList.remove('active');
+      const tabs = document.querySelectorAll(`#${context === 'quick' ? 'wizard-step-2' : 'officeLibraryModal'} .tab`);
+      tabs.forEach((tab, i) => tab.classList.toggle('active', (mode === 'search' && i === 0) || (mode === 'manual' && i === 1)));
+      const coordsDisplay = document.getElementById(`${context}-coords-display`);
+      if (mode === 'search') { coordsDisplay.classList.remove('active'); coordsDisplay.style.color = ''; coordsDisplay.style.background = ''; }
+      selectedCoords[context] = null;
+    }
+    
+    document.addEventListener('click', (e) => { if (!e.target.closest('.city-search-container')) document.querySelectorAll('.city-search-results').forEach(el => el.classList.remove('active')); });
+    
+    // ==================== ADD OFFICE ====================
+    async function quickAddOffice() {
+      let name, lat, lng;
+      if (addMode.quick === 'manual') {
+        const cityName = document.getElementById('quick-manual-city').value.trim();
+        lat = parseFloat(document.getElementById('quick-manual-lat').value);
+        lng = parseFloat(document.getElementById('quick-manual-lng').value);
+        if (!cityName) { alert('Please enter a city/location name'); return; }
+        if (isNaN(lat) || isNaN(lng)) { alert('Please enter valid coordinates.'); return; }
+      } else {
+        if (!selectedCoords.quick) { alert('Please search and select a city, or switch to Manual Entry.'); return; }
+        lat = selectedCoords.quick.lat; lng = selectedCoords.quick.lng;
+      }
+      name = document.getElementById('quick-office-name').value.trim();
+      if (!name) { alert('Please enter an office name'); return; }
+      if (officeLibrary.some(o => o.name.toLowerCase() === name.toLowerCase())) { alert(`"${name}" already exists.`); return; }
+      
+      showLoading('Adding office...');
+      try {
+        const newItem = await spAdd(SHAREPOINT_CONFIG.lists.offices, {
+          '__metadata': { 'type': `SP.Data.${SHAREPOINT_CONFIG.lists.offices}ListItem` },
+          'Title': name, 'Latitude': lat, 'Longitude': lng
+        });
+        officeLibrary.push({ id: newItem.Id, name, lat, lng });
+        
+        // Reset form
+        document.getElementById('quick-city-search').value = '';
+        document.getElementById('quick-office-name').value = '';
+        document.getElementById('quick-manual-city').value = '';
+        document.getElementById('quick-manual-lat').value = '';
+        document.getElementById('quick-manual-lng').value = '';
+        const coordsDisplay = document.getElementById('quick-coords-display');
+        coordsDisplay.innerHTML = `✓ Added "${name}"`;
+        coordsDisplay.classList.add('active');
+        setTimeout(() => coordsDisplay.classList.remove('active'), 2000);
+        selectedCoords.quick = null;
+        renderSubnetMappingList();
+        hideLoading();
+      } catch (err) {
+        hideLoading();
+        alert('Failed to add office: ' + err.message);
+      }
+    }
+    
+    async function addOfficeToLibrary() {
+      let name, lat, lng;
+      if (addMode.library === 'manual') {
+        const cityName = document.getElementById('library-manual-city').value.trim();
+        lat = parseFloat(document.getElementById('library-manual-lat').value);
+        lng = parseFloat(document.getElementById('library-manual-lng').value);
+        if (!cityName || isNaN(lat) || isNaN(lng)) { alert('Enter location and valid coordinates'); return; }
+      } else {
+        if (!selectedCoords.library) { alert('Search and select a city'); return; }
+        lat = selectedCoords.library.lat; lng = selectedCoords.library.lng;
+      }
+      name = document.getElementById('library-office-name').value.trim();
+      if (!name) { alert('Enter office name'); return; }
+      if (officeLibrary.some(o => o.name.toLowerCase() === name.toLowerCase())) { alert(`"${name}" already exists.`); return; }
+      
+      showLoading('Adding office...');
+      try {
+        const newItem = await spAdd(SHAREPOINT_CONFIG.lists.offices, {
+          '__metadata': { 'type': `SP.Data.${SHAREPOINT_CONFIG.lists.offices}ListItem` },
+          'Title': name, 'Latitude': lat, 'Longitude': lng
+        });
+        officeLibrary.push({ id: newItem.Id, name, lat, lng });
+        hideLoading();
+        renderOfficeLibrary();
+      } catch (err) {
+        hideLoading();
+        alert('Failed to add office: ' + err.message);
+      }
+    }
+    
+    async function removeOfficeFromLibrary(id, name) {
+      if (!confirm(`Delete "${name}" from the office library? This affects all users.`)) return;
+      showLoading('Deleting office...');
+      try {
+        await spDelete(SHAREPOINT_CONFIG.lists.offices, id);
+        officeLibrary = officeLibrary.filter(o => o.id !== id);
+        hideLoading();
+        renderOfficeLibrary();
+      } catch (err) {
+        hideLoading();
+        alert('Failed to delete: ' + err.message);
+      }
+    }
+    
+    // ==================== FILE HANDLING ====================
+    const fileDrop = document.getElementById('file-drop');
+    fileDrop.addEventListener('dragover', (e) => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+    fileDrop.addEventListener('drop', (e) => { e.preventDefault(); fileDrop.classList.remove('dragover'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+    function handleFileSelect(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
+    
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          pendingImport = [];
+          wb.SheetNames.forEach(sheet => {
+            XLSX.utils.sheet_to_json(wb.Sheets[sheet]).forEach((row, idx) => {
+              const d = {
+                id: `${sheet}-${idx}-${Date.now()}`,
+                name: row['Device name'] || row['Name'] || row['Hostname'] || `Device-${idx}`,
+                ip: row['IP address'] || row['IP'] || '',
+                mac: row['Mac address'] || row['MAC'] || '',
+                type: row['Device type'] || row['Type'] || sheet,
+                manufacturer: row['Manufacturer'] || '',
+                os: row['OS platform'] || ''
+              };
+              if (d.ip?.match(/^\d+\.\d+\.\d+\.\d+$/)) pendingImport.push(d);
+            });
+          });
+          
+          // Calculate deltas if updating existing client
+          const newIPs = new Set(pendingImport.map(d => d.ip));
+          const addedCount = pendingImport.filter(d => !existingDeviceIPs.has(d.ip)).length;
+          const removedCount = [...existingDeviceIPs].filter(ip => !newIPs.has(ip)).length;
+          const keptCount = pendingImport.filter(d => existingDeviceIPs.has(d.ip)).length;
+          
+          isUpdatingClient = existingDeviceIPs.size > 0;
+          
+          // Show delta info if updating
+          const deltaEl = document.getElementById('delta-preview');
+          if (isUpdatingClient) {
+            deltaEl.innerHTML = `
+              <div class="delta-summary">
+                <h4>📊 Import Delta (updating existing client)</h4>
+                <div class="delta-row"><span>New devices to add:</span><span class="delta-add">+${addedCount}</span></div>
+                <div class="delta-row"><span>Existing devices to keep:</span><span class="delta-keep">${keptCount}</span></div>
+                <div class="delta-row"><span>Old devices to remove:</span><span class="delta-remove">-${removedCount}</span></div>
+              </div>`;
+            deltaEl.style.display = 'block';
+          } else {
+            deltaEl.style.display = 'none';
+          }
+          
+          const sc = {};
+          pendingImport.forEach(d => { const s = getSubnetFromIP(d.ip); sc[s] = (sc[s] || 0) + 1; });
+          document.getElementById('preview-subnets').innerHTML = '<div style="margin-bottom: 8px; color: #94a3b8;">Detected subnets:</div>' +
+            Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([s, c]) => `<div style="display: flex; justify-content: space-between; padding: 4px 0;"><span style="font-family: monospace;">${s}.*</span><span style="color: #64748b;">${c} devices</span></div>`).join('');
+          document.getElementById('import-preview').style.display = 'block';
+          document.getElementById('preview-count').textContent = pendingImport.length;
+          document.getElementById('btn-next-1').disabled = false;
+          
+          // Auto-fill client name if empty
+          if (!document.getElementById('client-name').value && clientName) {
+            document.getElementById('client-name').value = clientName;
+          }
+        } catch (err) { alert('Error: ' + err.message); }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    // ==================== RENDER ====================
+    function renderAll() { updateStats(); renderLocationList(); renderMap(); }
+    
+    function updateStats() {
+      const g = getDevicesByLocation();
+      document.getElementById('stat-total').textContent = devices.length;
+      document.getElementById('stat-office').textContent = devices.filter(d => d.classification === 'Office').length;
+      document.getElementById('stat-remote').textContent = devices.filter(d => d.classification === 'Remote/Home').length;
+      document.getElementById('stat-unknown').textContent = devices.filter(d => d.classification === 'Unknown').length;
+      document.getElementById('stat-locations').textContent = g.filter(x => x.lat && x.lng).length;
+      document.getElementById('location-count').textContent = g.length;
+    }
+    
+    function filterDevices(f, el) {
+      currentFilter = f;
+      document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      el?.classList.add('active');
+      renderLocationList(); renderMap();
+    }
+    
+    function setViewMode(m) {
+      viewMode = m;
+      document.getElementById('btn-locations').classList.toggle('active', m === 'locations');
+      document.getElementById('btn-devices').classList.toggle('active', m === 'devices');
+      renderMap();
+    }
+    
+    function getFilteredLocationGroups() {
+      let g = getDevicesByLocation();
+      if (currentFilter === 'office') g = g.filter(x => x.classification === 'Office');
+      else if (currentFilter === 'remote') g = g.filter(x => x.classification === 'Remote/Home');
+      else if (currentFilter === 'unknown') g = g.filter(x => x.classification === 'Unknown');
+      return g;
+    }
+    
+    function renderLocationList() {
+      document.getElementById('location-list').innerHTML = getFilteredLocationGroups().map(g => {
+        const exp = expandedLocations.has(g.name);
+        const tc = g.classification === 'Office' ? '' : g.classification === 'Remote/Home' ? 'remote' : 'unknown';
+        return `
+          <div class="location-summary ${tc}" onclick="toggleLocation('${g.name.replace(/'/g, "\\'")}')">
+            <h4>${g.classification === 'Office' ? '🏢' : g.classification === 'Remote/Home' ? '🏠' : '❓'} ${g.name} <span class="device-count">${g.devices.length}</span></h4>
+            <div class="subnets">${Array.from(g.subnets).slice(0, 3).join(', ')}${g.subnets.size > 3 ? '...' : ''}</div>
+          </div>
+          <ul class="device-list ${exp ? 'expanded' : ''}">
+            ${g.devices.slice(0, 20).map(d => `<li class="device-item"><div class="device-name">${d.name}</div><div class="device-meta">${d.ip} • ${d.type}</div></li>`).join('')}
+            ${g.devices.length > 20 ? `<li class="device-item" style="color: #64748b;">... +${g.devices.length - 20} more</li>` : ''}
+          </ul>`;
+      }).join('');
+    }
+    
+    function toggleLocation(n) { expandedLocations.has(n) ? expandedLocations.delete(n) : expandedLocations.add(n); renderLocationList(); }
+    
+    function renderMap() {
+      markers.clearLayers();
+      if (viewMode === 'locations') {
+        getFilteredLocationGroups().forEach(g => {
+          if (g.lat && g.lng) {
+            const c = g.classification === 'Office' ? '#22c55e' : g.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const sz = Math.min(Math.max(36, Math.sqrt(g.devices.length) * 8), 70);
+            const icon = L.divIcon({ className: 'x', html: `<div style="width:${sz}px;height:${sz}px;background:${c};border-radius:50%;border:3px solid white;box-shadow:0 4px 15px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:${sz > 50 ? 14 : 12}px;font-weight:700;color:white">${g.devices.length}</div>`, iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2] });
+            L.marker([g.lat, g.lng], { icon }).bindPopup(`<div class="popup-title">${g.name}</div><div class="popup-row"><span class="popup-label">Type:</span> ${g.classification}</div><div class="popup-row"><span class="popup-label">Devices:</span> ${g.devices.length}</div><div class="popup-devices">${g.devices.slice(0, 5).map(d => `<div class="popup-device">${d.name} (${d.ip})</div>`).join('')}${g.devices.length > 5 ? `<div class="popup-device">+${g.devices.length - 5} more</div>` : ''}</div>`, { maxWidth: 300 }).addTo(markers);
+          }
+        });
+      } else {
+        let f = devices;
+        if (currentFilter === 'office') f = f.filter(d => d.classification === 'Office');
+        else if (currentFilter === 'remote') f = f.filter(d => d.classification === 'Remote/Home');
+        else if (currentFilter === 'unknown') f = f.filter(d => d.classification === 'Unknown');
+        f.forEach(d => {
+          if (d.lat && d.lng) {
+            const c = d.classification === 'Office' ? '#22c55e' : d.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const icon = L.divIcon({ className: 'x', html: `<div style="width:12px;height:12px;background:${c};border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
+            L.marker([d.lat + (Math.random() - .5) * .4, d.lng + (Math.random() - .5) * .4], { icon }).bindPopup(`<div class="popup-title">${d.name}</div><div class="popup-row"><span class="popup-label">IP:</span> ${d.ip}</div><div class="popup-row"><span class="popup-label">Location:</span> ${d.location}</div>`).addTo(markers);
+          }
+        });
+      }
+      if (markers.getLayers().length) { const b = markers.getBounds(); if (b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 10 }); }
+    }
+    
+    // ==================== OFFICE LIBRARY ====================
+    async function renderOfficeLibrary() {
+      const listEl = document.getElementById('office-library-list');
+      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">Loading offices...</div>';
+      
+      try {
+        officeLibrary = await loadOffices();
+        listEl.innerHTML = officeLibrary.length === 0 
+          ? '<div style="text-align: center; padding: 20px; color: #64748b;">No offices yet. Add one below.</div>'
+          : officeLibrary.map(o => `
+            <div class="location-card">
+              <div class="location-info"><h4>${o.name}</h4><p>${o.lat.toFixed(4)}, ${o.lng.toFixed(4)}</p></div>
+              <button class="btn btn-danger btn-sm" onclick="removeOfficeFromLibrary(${o.id}, '${o.name.replace(/'/g, "\\'")}')">🗑️</button>
+            </div>
+          `).join('');
+      } catch (err) {
+        listEl.innerHTML = `<div style="color: #ef4444; padding: 20px;">Error: ${err.message}</div>`;
+      }
+      
+      // Reset form
+      document.getElementById('library-city-search').value = '';
+      document.getElementById('library-office-name').value = '';
+      document.getElementById('library-coords-display').classList.remove('active');
+      selectedCoords.library = null;
+      switchAddMode('search', 'library');
+    }
+    
+    // ==================== EDIT SUBNETS ====================
+    function renderEditSubnetList() {
+      document.getElementById('edit-subnet-list').innerHTML = subnetMappings.length === 0 ? '<p style="color:#64748b;text-align:center;padding:20px;">No mappings configured.</p>' :
+        subnetMappings.map((m, i) => `
+          <div class="subnet-mapping-row mapped">
+            <div class="subnet">${m.subnet}.*</div>
+            <div class="device-count">${devices.filter(d => d.ip.startsWith(m.subnet + '.')).length} devices</div>
+            <select onchange="subnetMappings[${i}].location=this.value">${officeLibrary.map(o => `<option value="${o.name}" ${o.name === m.location ? 'selected' : ''}>${o.name}</option>`).join('')}</select>
+            <select style="width:90px" onchange="subnetMappings[${i}].type=this.value"><option value="office" ${m.type === 'office' ? 'selected' : ''}>Office</option><option value="remote" ${m.type === 'remote' ? 'selected' : ''}>Remote</option></select>
+          </div>
+        `).join('');
+    }
+    
+    // ==================== EXPORT ====================
+    function exportData() {
+      const g = getDevicesByLocation();
+      const csv = [['Client', clientName], ['Export Date', new Date().toISOString()], [''], ['Location', 'Devices', 'Type', 'Subnets', 'Lat', 'Lng'], ...g.map(x => [x.name, x.devices.length, x.classification, Array.from(x.subnets).join(';'), x.lat || '', x.lng || ''])].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${clientName.replace(/\s+/g, '_')}_geo_summary.csv`; a.click();
+    }
+    
+    // ==================== INIT ====================
+    showLoading('Connecting to SharePoint...');
+    init();
+  </script>
+</body>
+</html>

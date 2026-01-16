@@ -1,0 +1,3 @@
+# Copy this file to config.py and fill in your actual password
+# DO NOT commit config.py to git!
+DB_PASSWORD = "your_password_here"

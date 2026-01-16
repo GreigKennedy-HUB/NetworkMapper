@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Device Geolocation Mapper</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+    
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-4px);
+    }
+    
+    .stat-card.active {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+    
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 24px;
+    }
+    
+    @media (max-width: 1100px) {
+      .main-content { grid-template-columns: 1fr; }
+    }
+    
+    .map-container {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      height: 500px;
+    }
+    
+    #map { height: 100%; width: 100%; }
+    
+    .sidebar {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .sidebar h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      margin-bottom: 16px;
+      color: #94a3b8;
+    }
+    
+    .device-list { list-style: none; }
+    
+    .device-item {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+    
+    .device-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .device-item.office { border-left-color: #22c55e; }
+    .device-item.remote { border-left-color: #f59e0b; }
+    .device-item.unknown { border-left-color: #94a3b8; }
+    
+    .device-name {
+      font-weight: 600;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .device-meta {
+      font-size: 11px;
+      color: #64748b;
+      display: flex;
+      gap: 12px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge-office { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .badge-remote { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .badge-unknown { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-overlay.active { display: flex; }
+    
+    .modal {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .modal h2 {
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 8px;
+    }
+    
+    .modal p { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+    
+    .form-group { margin-bottom: 16px; }
+    
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    textarea { height: 150px; resize: vertical; }
+    
+    .location-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .location-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .location-info h4 { font-size: 14px; margin-bottom: 4px; }
+    .location-info p { font-size: 11px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+    
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 4px;
+      border-radius: 10px;
+      width: fit-content;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+    }
+    
+    .tab.active { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+    .tab:hover { color: #e2e8f0; }
+    
+    .detail-panel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+    
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    .detail-item label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .detail-item p {
+      font-size: 14px;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .file-drop {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .file-drop:hover, .file-drop.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+    
+    .file-drop-icon { font-size: 48px; margin-bottom: 16px; }
+    .file-drop-text { color: #94a3b8; }
+    
+    .info-banner {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .info-banner-icon { font-size: 20px; }
+    .info-banner-text { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+    .info-banner-text strong { color: #60a5fa; }
+    
+    .leaflet-popup-content-wrapper {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .leaflet-popup-content { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .leaflet-popup-tip { background: #1e293b; }
+    
+    .popup-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    .popup-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .popup-label { color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🌐 Network Device Geolocation</h1>
+        <p class="subtitle">Map and classify devices across office and remote locations</p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="openModal('locationsModal')">🏢 Locations</button>
+        <button class="btn btn-secondary" onclick="openModal('importModal')">📥 Import Excel</button>
+        <button class="btn btn-secondary" onclick="exportData()">📤 Export</button>
+        <button class="btn btn-primary" onclick="loadDemoData()">Load Demo</button>
+      </div>
+    </header>
+    
+    <div class="info-banner">
+      <span class="info-banner-icon">💡</span>
+      <div class="info-banner-text">
+        <strong>Private IP Networks:</strong> Since your devices use private IPs (192.168.x.x, 172.16.x.x), 
+        they cannot be geolocated via IP lookup. Instead, assign locations to your <strong>subnets</strong> 
+        (e.g., 192.168.150.x = "NYC Office"). Click <strong>Locations</strong> to configure subnet-to-location mappings.
+      </div>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card active" onclick="filterDevices('all')">
+        <div class="stat-value" id="stat-total" style="color: #60a5fa;">0</div>
+        <div class="stat-label">Total Devices</div>
+      </div>
+      <div class="stat-card" onclick="filterDevices('office')">
+        <div class="stat-value" id="stat-office" style="color: #22c55e;">0</div>
+        <div class="stat-label">Office</div>
+      </div>
+      <div class="stat-card" onclick="filterDevices('remote')">
+        <div class="stat-value" id="stat-remote" style="color: #f59e0b;">0</div>
+        <div class="stat-label">Remote/Home</div>
+      </div>
+      <div class="stat-card" onclick="filterDevices('unknown')">
+        <div class="stat-value" id="stat-unknown" style="color: #94a3b8;">0</div>
+        <div class="stat-label">Unknown</div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div class="map-container">
+        <div id="map"></div>
+      </div>
+      
+      <div class="sidebar">
+        <h3>📋 Devices (<span id="device-count">0</span>)</h3>
+        <ul class="device-list" id="device-list"></ul>
+      </div>
+    </div>
+    
+    <div class="detail-panel" id="detail-panel" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+          <h3 id="detail-name" style="font-family: 'JetBrains Mono', monospace; font-size: 18px;"></h3>
+          <span class="badge" id="detail-badge"></span>
+        </div>
+        <button class="btn btn-secondary" onclick="closeDetail()">Close</button>
+      </div>
+      <div class="detail-grid" id="detail-grid"></div>
+    </div>
+  </div>
+  
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <h2>📥 Import Network Discovery Data</h2>
+      <p>Upload an Excel file (.xlsx) from your network discovery tool. We'll extract device information automatically.</p>
+      
+      <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+        <div class="file-drop-icon">📁</div>
+        <div class="file-drop-text">
+          <strong>Click to select</strong> or drag & drop your Excel file here<br>
+          <small>Supports .xlsx files from network discovery tools</small>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+      
+      <div id="import-preview" style="display: none; margin-top: 20px;">
+        <h4 style="margin-bottom: 12px;">Preview (<span id="preview-count">0</span> devices)</h4>
+        <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px;">
+          <table style="width: 100%; font-size: 12px;">
+            <thead>
+              <tr style="color: #64748b; text-align: left;">
+                <th style="padding: 8px;">Device</th>
+                <th style="padding: 8px;">IP</th>
+                <th style="padding: 8px;">Type</th>
+                <th style="padding: 8px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="preview-table"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('importModal')">Cancel</button>
+        <button class="btn btn-primary" id="import-btn" onclick="confirmImport()" disabled>Import Devices</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Locations Modal -->
+  <div class="modal-overlay" id="locationsModal">
+    <div class="modal">
+      <h2>🏢 Location Configuration</h2>
+      <p>Map your network subnets to physical locations. Devices matching these subnets will be automatically classified.</p>
+      
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('subnets')">Subnet Mappings</button>
+        <button class="tab" onclick="switchTab('offices')">Office Locations</button>
+      </div>
+      
+      <div id="tab-subnets">
+        <div class="location-grid" id="subnet-list"></div>
+        
+        <h4 style="margin: 20px 0 12px;">Add Subnet Mapping</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+          <div class="form-group" style="margin: 0;">
+            <label>Subnet Prefix</label>
+            <input type="text" id="new-subnet" placeholder="192.168.150">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Location Name</label>
+            <input type="text" id="new-subnet-location" placeholder="NYC Office">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Type</label>
+            <select id="new-subnet-type">
+              <option value="office">Office</option>
+              <option value="remote">Remote/Home</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="addSubnet()">Add</button>
+        </div>
+      </div>
+      
+      <div id="tab-offices" style="display: none;">
+        <div class="location-grid" id="office-list"></div>
+        
+        <h4 style="margin: 20px 0 12px;">Add Office Location</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+          <div class="form-group" style="margin: 0;">
+            <label>Name</label>
+            <input type="text" id="new-office-name" placeholder="NYC HQ">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Latitude</label>
+            <input type="text" id="new-office-lat" placeholder="40.7128">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Longitude</label>
+            <input type="text" id="new-office-lng" placeholder="-74.0060">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Radius (mi)</label>
+            <input type="number" id="new-office-radius" value="30">
+          </div>
+          <button class="btn btn-primary" onclick="addOffice()">Add</button>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('locationsModal')">Done</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Application State
+    let devices = [];
+    let pendingImport = [];
+    let currentFilter = 'all';
+    let selectedDevice = null;
+    
+    // Subnet to location mappings
+    let subnetMappings = [
+      { subnet: '192.168.150', location: 'NYC Office', type: 'office', lat: 40.7128, lng: -74.0060 },
+      { subnet: '192.168.151', location: 'NYC Office', type: 'office', lat: 40.7128, lng: -74.0060 },
+      { subnet: '172.16.1', location: 'Dallas Data Center', type: 'office', lat: 32.7767, lng: -96.7970 },
+      { subnet: '10.0.0', location: 'Remote Workers', type: 'remote', lat: 39.8283, lng: -98.5795 },
+    ];
+    
+    // Office locations for map
+    let officeLocations = [
+      { name: 'NYC HQ', lat: 40.7128, lng: -74.0060, radius: 30 },
+      { name: 'Dallas DC', lat: 32.7767, lng: -96.7970, radius: 25 },
+      { name: 'SF Office', lat: 37.7749, lng: -122.4194, radius: 30 },
+      { name: 'Toronto Office', lat: 43.6532, lng: -79.3832, radius: 30 },
+      { name: 'Vancouver Office', lat: 49.2827, lng: -123.1207, radius: 25 },
+    ];
+    
+    // Initialize Leaflet Map
+    const map = L.map('map').setView([39.8283, -98.5795], 4);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Marker layers
+    let deviceMarkers = L.layerGroup().addTo(map);
+    let officeMarkers = L.layerGroup().addTo(map);
+    
+    // Custom icons
+    const createIcon = (color) => L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="
+        width: 24px; height: 24px; 
+        background: ${color}; 
+        border-radius: 50%; 
+        border: 3px solid white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      "></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+    
+    const officeIcon = L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="
+        width: 32px; height: 32px; 
+        background: #1e293b; 
+        border: 3px solid #22c55e;
+        border-radius: 8px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      ">🏢</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    
+    // Classify device based on subnet
+    function classifyDevice(ip) {
+      for (const mapping of subnetMappings) {
+        if (ip.startsWith(mapping.subnet)) {
+          return {
+            classification: mapping.type === 'office' ? 'Office' : 'Remote/Home',
+            location: mapping.location,
+            lat: mapping.lat + (Math.random() - 0.5) * 0.5,
+            lng: mapping.lng + (Math.random() - 0.5) * 0.5
+          };
+        }
+      }
+      return { classification: 'Unknown', location: 'Unknown', lat: null, lng: null };
+    }
+    
+    // Update device classifications
+    function updateDeviceClassifications() {
+      devices = devices.map(device => {
+        const info = classifyDevice(device.ip);
+        return { ...device, ...info };
+      });
+      renderAll();
+    }
+    
+    // Render everything
+    function renderAll() {
+      updateStats();
+      renderDeviceList();
+      renderMap();
+      renderSubnetList();
+      renderOfficeList();
+    }
+    
+    // Update statistics
+    function updateStats() {
+      const filtered = getFilteredDevices();
+      document.getElementById('stat-total').textContent = devices.length;
+      document.getElementById('stat-office').textContent = devices.filter(d => d.classification === 'Office').length;
+      document.getElementById('stat-remote').textContent = devices.filter(d => d.classification === 'Remote/Home').length;
+      document.getElementById('stat-unknown').textContent = devices.filter(d => d.classification === 'Unknown').length;
+      document.getElementById('device-count').textContent = filtered.length;
+    }
+    
+    // Get filtered devices
+    function getFilteredDevices() {
+      if (currentFilter === 'all') return devices;
+      if (currentFilter === 'office') return devices.filter(d => d.classification === 'Office');
+      if (currentFilter === 'remote') return devices.filter(d => d.classification === 'Remote/Home');
+      if (currentFilter === 'unknown') return devices.filter(d => d.classification === 'Unknown');
+      return devices;
+    }
+    
+    // Filter devices
+    function filterDevices(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      renderDeviceList();
+      renderMap();
+    }
+    
+    // Render device list
+    function renderDeviceList() {
+      const list = document.getElementById('device-list');
+      const filtered = getFilteredDevices();
+      
+      list.innerHTML = filtered.map(device => `
+        <li class="device-item ${device.classification.toLowerCase().replace('/', '')}" onclick="selectDevice('${device.id}')">
+          <div class="device-name">${device.name}</div>
+          <div class="device-meta">
+            <span>${device.ip}</span>
+            <span>${device.location}</span>
+          </div>
+        </li>
+      `).join('');
+    }
+    
+    // Render map markers
+    function renderMap() {
+      deviceMarkers.clearLayers();
+      officeMarkers.clearLayers();
+      
+      // Add office markers
+      officeLocations.forEach(office => {
+        const marker = L.marker([office.lat, office.lng], { icon: officeIcon })
+          .bindPopup(`
+            <div class="popup-title">${office.name}</div>
+            <div class="popup-row"><span class="popup-label">Type:</span> Office Location</div>
+            <div class="popup-row"><span class="popup-label">Radius:</span> ${office.radius} mi</div>
+          `);
+        officeMarkers.addLayer(marker);
+        
+        // Add radius circle
+        L.circle([office.lat, office.lng], {
+          radius: office.radius * 1609.34,
+          color: '#22c55e',
+          fillColor: '#22c55e',
+          fillOpacity: 0.1,
+          weight: 1,
+          dashArray: '5, 5'
+        }).addTo(officeMarkers);
+      });
+      
+      // Add device markers
+      const filtered = getFilteredDevices();
+      filtered.forEach(device => {
+        if (device.lat && device.lng) {
+          const color = device.classification === 'Office' ? '#22c55e' : 
+                        device.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+          
+          const marker = L.marker([device.lat, device.lng], { icon: createIcon(color) })
+            .bindPopup(`
+              <div class="popup-title">${device.name}</div>
+              <div class="popup-row"><span class="popup-label">IP:</span> ${device.ip}</div>
+              <div class="popup-row"><span class="popup-label">Type:</span> ${device.type}</div>
+              <div class="popup-row"><span class="popup-label">Location:</span> ${device.location}</div>
+              <div class="popup-row"><span class="popup-label">Status:</span> ${device.status}</div>
+            `);
+          
+          marker.on('click', () => selectDevice(device.id));
+          deviceMarkers.addLayer(marker);
+        }
+      });
+    }
+    
+    // Select device
+    function selectDevice(id) {
+      const device = devices.find(d => d.id === id);
+      if (!device) return;
+      
+      selectedDevice = device;
+      const panel = document.getElementById('detail-panel');
+      panel.style.display = 'block';
+      
+      document.getElementById('detail-name').textContent = device.name;
+      
+      const badge = document.getElementById('detail-badge');
+      badge.textContent = device.classification;
+      badge.className = 'badge badge-' + (device.classification === 'Office' ? 'office' : 
+                                          device.classification === 'Remote/Home' ? 'remote' : 'unknown');
+      
+      const grid = document.getElementById('detail-grid');
+      grid.innerHTML = `
+        <div class="detail-item"><label>IP Address</label><p>${device.ip}</p></div>
+        <div class="detail-item"><label>MAC Address</label><p>${device.mac || 'N/A'}</p></div>
+        <div class="detail-item"><label>Device Type</label><p>${device.type}</p></div>
+        <div class="detail-item"><label>Status</label><p>${device.status}</p></div>
+        <div class="detail-item"><label>Last Seen</label><p>${device.lastSeen}</p></div>
+        <div class="detail-item"><label>Location</label><p>${device.location}</p></div>
+        <div class="detail-item"><label>Manufacturer</label><p>${device.manufacturer || 'N/A'}</p></div>
+        <div class="detail-item"><label>OS Platform</label><p>${device.os || 'N/A'}</p></div>
+      `;
+      
+      if (device.lat && device.lng) {
+        map.setView([device.lat, device.lng], 8);
+      }
+    }
+    
+    function closeDetail() {
+      document.getElementById('detail-panel').style.display = 'none';
+      selectedDevice = null;
+    }
+    
+    // Modal functions
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+    
+    // Tab switching
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-subnets').style.display = tab === 'subnets' ? 'block' : 'none';
+      document.getElementById('tab-offices').style.display = tab === 'offices' ? 'block' : 'none';
+    }
+    
+    // Render subnet list
+    function renderSubnetList() {
+      const list = document.getElementById('subnet-list');
+      list.innerHTML = subnetMappings.map((m, i) => `
+        <div class="location-card">
+          <div class="location-info">
+            <h4>${m.subnet}.*</h4>
+            <p>${m.location} (${m.type})</p>
+          </div>
+          <button class="btn btn-danger" onclick="removeSubnet(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+    
+    // Render office list
+    function renderOfficeList() {
+      const list = document.getElementById('office-list');
+      list.innerHTML = officeLocations.map((o, i) => `
+        <div class="location-card">
+          <div class="location-info">
+            <h4>${o.name}</h4>
+            <p>${o.lat.toFixed(4)}, ${o.lng.toFixed(4)} • ${o.radius}mi</p>
+          </div>
+          <button class="btn btn-danger" onclick="removeOffice(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+    
+    // Add subnet mapping
+    function addSubnet() {
+      const subnet = document.getElementById('new-subnet').value.trim();
+      const location = document.getElementById('new-subnet-location').value.trim();
+      const type = document.getElementById('new-subnet-type').value;
+      
+      if (!subnet || !location) {
+        alert('Please fill in subnet and location');
+        return;
+      }
+      
+      // Find matching office for coordinates
+      const office = officeLocations.find(o => o.name.toLowerCase().includes(location.toLowerCase()));
+      
+      subnetMappings.push({
+        subnet,
+        location,
+        type,
+        lat: office ? office.lat : 39.8283,
+        lng: office ? office.lng : -98.5795
+      });
+      
+      document.getElementById('new-subnet').value = '';
+      document.getElementById('new-subnet-location').value = '';
+      
+      updateDeviceClassifications();
+    }
+    
+    function removeSubnet(index) {
+      subnetMappings.splice(index, 1);
+      updateDeviceClassifications();
+    }
+    
+    // Add office
+    function addOffice() {
+      const name = document.getElementById('new-office-name').value.trim();
+      const lat = parseFloat(document.getElementById('new-office-lat').value);
+      const lng = parseFloat(document.getElementById('new-office-lng').value);
+      const radius = parseInt(document.getElementById('new-office-radius').value) || 30;
+      
+      if (!name || isNaN(lat) || isNaN(lng)) {
+        alert('Please fill in all fields');
+        return;
+      }
+      
+      officeLocations.push({ name, lat, lng, radius });
+      
+      document.getElementById('new-office-name').value = '';
+      document.getElementById('new-office-lat').value = '';
+      document.getElementById('new-office-lng').value = '';
+      document.getElementById('new-office-radius').value = '30';
+      
+      renderAll();
+    }
+    
+    function removeOffice(index) {
+      officeLocations.splice(index, 1);
+      renderAll();
+    }
+    
+    // File handling
+    const fileDrop = document.getElementById('file-drop');
+    
+    fileDrop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileDrop.classList.add('dragover');
+    });
+    
+    fileDrop.addEventListener('dragleave', () => {
+      fileDrop.classList.remove('dragover');
+    });
+    
+    fileDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDrop.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+    
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) processFile(file);
+    }
+    
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          pendingImport = [];
+          
+          // Process each sheet
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            
+            rows.forEach((row, idx) => {
+              // Try to extract device info from various column names
+              const device = {
+                id: `${sheetName}-${idx}-${Date.now()}`,
+                name: row['Device name'] || row['Name'] || row['Hostname'] || `Device-${idx}`,
+                ip: row['IP address'] || row['IP'] || row['Address'] || '',
+                mac: row['Mac address'] || row['MAC'] || '',
+                type: row['Device type'] || row['Type'] || sheetName,
+                status: row['Status'] || 'Unknown',
+                lastSeen: row['Last seen'] || '',
+                manufacturer: row['Manufacturer'] || '',
+                os: row['OS platform'] || row['OS'] || '',
+                osInfo: row['OS information'] || '',
+                monitored: row['Monitored'] || ''
+              };
+              
+              if (device.ip) {
+                pendingImport.push(device);
+              }
+            });
+          });
+          
+          // Show preview
+          document.getElementById('import-preview').style.display = 'block';
+          document.getElementById('preview-count').textContent = pendingImport.length;
+          document.getElementById('import-btn').disabled = false;
+          
+          const table = document.getElementById('preview-table');
+          table.innerHTML = pendingImport.slice(0, 10).map(d => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <td style="padding: 8px;">${d.name}</td>
+              <td style="padding: 8px; font-family: monospace;">${d.ip}</td>
+              <td style="padding: 8px;">${d.type}</td>
+              <td style="padding: 8px;">${d.status}</td>
+            </tr>
+          `).join('') + (pendingImport.length > 10 ? `
+            <tr><td colspan="4" style="padding: 8px; color: #64748b;">... and ${pendingImport.length - 10} more</td></tr>
+          ` : '');
+          
+        } catch (error) {
+          alert('Error reading file: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    function confirmImport() {
+      // Classify each device
+      pendingImport = pendingImport.map(device => {
+        const info = classifyDevice(device.ip);
+        return { ...device, ...info };
+      });
+      
+      devices = [...devices, ...pendingImport];
+      pendingImport = [];
+      
+      closeModal('importModal');
+      document.getElementById('import-preview').style.display = 'none';
+      document.getElementById('import-btn').disabled = true;
+      
+      renderAll();
+      
+      // Zoom to fit all markers
+      if (devices.length > 0) {
+        const bounds = [];
+        devices.forEach(d => {
+          if (d.lat && d.lng) bounds.push([d.lat, d.lng]);
+        });
+        if (bounds.length > 0) {
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
+      }
+    }
+    
+    // Export data
+    function exportData() {
+      const csv = [
+        ['Device Name', 'IP Address', 'MAC Address', 'Type', 'Status', 'Location', 'Classification', 'Latitude', 'Longitude'].join(','),
+        ...devices.map(d => [
+          `"${d.name}"`, d.ip, d.mac, d.type, d.status, `"${d.location}"`, d.classification, d.lat || '', d.lng || ''
+        ].join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'network_devices_geo.csv';
+      a.click();
+    }
+    
+    // Load demo data
+    function loadDemoData() {
+      devices = [
+        { id: '1', name: 'WORKSTATION-NYC-001', ip: '192.168.150.101', mac: '00-C0-FF-62-A0-C1', type: 'Workstation', status: 'Online', lastSeen: '2025-01-14', manufacturer: 'Dell', os: 'Windows' },
+        { id: '2', name: 'WORKSTATION-NYC-002', ip: '192.168.150.102', mac: '00-C0-FF-62-A0-C2', type: 'Workstation', status: 'Online', lastSeen: '2025-01-14', manufacturer: 'Dell', os: 'Windows' },
+        { id: '3', name: 'SERVER-DC-001', ip: '172.16.1.47', mac: '00-21-F7-16-B7-7F', type: 'Switch', status: 'Online', lastSeen: '2025-01-13', manufacturer: 'HP', os: 'N/A' },
+        { id: '4', name: 'PRINTER-BOB', ip: '172.16.1.185', mac: '1C-C1-DE-81-49-BC', type: 'Printer', status: 'Online', lastSeen: '2025-01-13', manufacturer: 'HP', os: 'N/A' },
+        { id: '5', name: 'REMOTE-DEV-SMITH', ip: '10.0.0.50', mac: 'AA-BB-CC-DD-EE-05', type: 'Laptop', status: 'Online', lastSeen: '2025-01-14', manufacturer: 'Lenovo', os: 'Windows' },
+        { id: '6', name: 'REMOTE-DEV-JONES', ip: '10.0.0.51', mac: 'AA-BB-CC-DD-EE-06', type: 'Laptop', status: 'Offline', lastSeen: '2025-01-13', manufacturer: 'Apple', os: 'macOS' },
+      ];
+      
+      updateDeviceClassifications();
+    }
+    
+    // Initialize
+    renderAll();
+  </script>
+</body>
+</html>

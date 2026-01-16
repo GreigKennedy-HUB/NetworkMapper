@@ -1,0 +1,20 @@
+# Secrets - NEVER commit
+backend/config.py
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# IDE
+.vscode/
+*.code-workspace
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log

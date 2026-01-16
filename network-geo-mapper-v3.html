@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Device Geolocation Mapper</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+    .client-name { color: #22c55e; font-weight: 600; }
+    
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+    
+    .btn-success:hover { transform: translateY(-2px); }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-secondary:hover, .btn-secondary.active { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
+    
+    .btn-warning {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    
+    .btn-warning:hover { background: rgba(251, 191, 36, 0.25); }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover { background: rgba(255, 255, 255, 0.06); transform: translateY(-4px); }
+    .stat-card.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+    
+    .stat-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    
+    .main-content { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+    @media (max-width: 1100px) { .main-content { grid-template-columns: 1fr; } }
+    
+    .map-container {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      height: 550px;
+    }
+    
+    #map { height: 100%; width: 100%; }
+    
+    .map-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+    
+    .sidebar {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      max-height: 550px;
+      overflow-y: auto;
+    }
+    
+    .sidebar h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 16px; color: #94a3b8; }
+    
+    .location-summary {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 4px solid #22c55e;
+    }
+    
+    .location-summary:hover { background: rgba(255, 255, 255, 0.06); }
+    .location-summary.remote { border-left-color: #f59e0b; }
+    .location-summary.unknown { border-left-color: #94a3b8; }
+    
+    .location-summary h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .location-summary .device-count { background: rgba(255, 255, 255, 0.1); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .location-summary .subnets { font-size: 12px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    
+    .device-list { list-style: none; display: none; }
+    .device-list.expanded { display: block; }
+    
+    .device-item {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      margin-left: 16px;
+      font-size: 12px;
+      border-left: 2px solid rgba(255,255,255,0.1);
+    }
+    
+    .device-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .device-name { font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .device-meta { font-size: 11px; color: #64748b; }
+    
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-overlay.active { display: flex; }
+    
+    .modal {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .modal-lg { max-width: 900px; }
+    
+    .modal h2 { font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+    .modal p { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    
+    input:focus, select:focus { outline: none; border-color: #3b82f6; }
+    
+    .location-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .location-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .location-info h4 { font-size: 14px; margin-bottom: 4px; }
+    .location-info p { font-size: 11px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 12px; font-size: 12px; }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+    
+    .file-drop {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .file-drop:hover, .file-drop.dragover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .file-drop-icon { font-size: 48px; margin-bottom: 16px; }
+    .file-drop-text { color: #94a3b8; }
+    
+    .subnet-mapping-row {
+      display: grid;
+      grid-template-columns: 150px 80px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      border-left: 4px solid #64748b;
+    }
+    
+    .subnet-mapping-row.mapped { border-left-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
+    .subnet-mapping-row .subnet { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .subnet-mapping-row .device-count { font-size: 12px; color: #64748b; }
+    
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    
+    .wizard-progress {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    
+    .wizard-progress-step {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+    
+    .wizard-progress-step.complete { background: #22c55e; }
+    .wizard-progress-step.current { background: #3b82f6; }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+    }
+    
+    .empty-state-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state h3 { color: #94a3b8; margin-bottom: 8px; }
+    
+    .leaflet-popup-content-wrapper { background: #1e293b; color: #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+    .leaflet-popup-content { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin: 12px; }
+    .leaflet-popup-tip { background: #1e293b; }
+    .popup-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    .popup-row { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 16px; }
+    .popup-label { color: #64748b; }
+    .popup-devices { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .popup-device { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+    
+    .add-office-inline {
+      display: grid;
+      grid-template-columns: 1fr 100px 100px auto;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 8px;
+      margin-top: 12px;
+      align-items: end;
+    }
+    
+    .add-office-inline .form-group { margin: 0; }
+    .add-office-inline label { font-size: 10px; }
+    .add-office-inline input { padding: 8px 12px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🌐 Network Device Geolocation</h1>
+        <p class="subtitle">
+          <span id="client-display">No client loaded - Import data to begin</span>
+        </p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-warning" onclick="newClient()">🆕 New Client</button>
+        <button class="btn btn-secondary" onclick="openModal('officeLibraryModal')">🏢 Office Library</button>
+        <button class="btn btn-secondary" onclick="openModal('importModal')">📥 Import Excel</button>
+        <button class="btn btn-secondary" onclick="exportData()" id="btn-export" disabled>📤 Export</button>
+      </div>
+    </header>
+    
+    <div id="empty-state" class="empty-state">
+      <div class="empty-state-icon">📁</div>
+      <h3>No Client Data Loaded</h3>
+      <p>Click "Import Excel" to load a network discovery file and begin mapping devices.</p>
+      <button class="btn btn-primary" onclick="openModal('importModal')" style="margin-top: 16px;">📥 Import Excel</button>
+    </div>
+    
+    <div id="main-app" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card active" onclick="filterDevices('all', this)">
+          <div class="stat-value" id="stat-total" style="color: #60a5fa;">0</div>
+          <div class="stat-label">Total Devices</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('office', this)">
+          <div class="stat-value" id="stat-office" style="color: #22c55e;">0</div>
+          <div class="stat-label">Office</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('remote', this)">
+          <div class="stat-value" id="stat-remote" style="color: #f59e0b;">0</div>
+          <div class="stat-label">Remote/Home</div>
+        </div>
+        <div class="stat-card" onclick="filterDevices('unknown', this)">
+          <div class="stat-value" id="stat-unknown" style="color: #94a3b8;">0</div>
+          <div class="stat-label">Unmapped</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-locations" style="color: #a78bfa;">0</div>
+          <div class="stat-label">Locations</div>
+        </div>
+      </div>
+      
+      <div class="main-content">
+        <div>
+          <div class="map-controls">
+            <button class="btn btn-secondary active" id="btn-locations" onclick="setViewMode('locations')">📍 Location View</button>
+            <button class="btn btn-secondary" id="btn-devices" onclick="setViewMode('devices')">🔘 Device View</button>
+            <button class="btn btn-secondary" onclick="openModal('subnetModal')" style="margin-left: auto;">⚙️ Edit Mappings</button>
+          </div>
+          <div class="map-container">
+            <div id="map"></div>
+          </div>
+        </div>
+        
+        <div class="sidebar">
+          <h3>📍 Locations (<span id="location-count">0</span>)</h3>
+          <div id="location-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Import Modal with Wizard -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal modal-lg">
+      <div class="wizard-progress">
+        <div class="wizard-progress-step current" id="progress-1"></div>
+        <div class="wizard-progress-step" id="progress-2"></div>
+        <div class="wizard-progress-step" id="progress-3"></div>
+      </div>
+      
+      <!-- Step 1: Client Name & File Upload -->
+      <div class="wizard-step active" id="wizard-step-1">
+        <h2>📥 Step 1: Import Client Data</h2>
+        <p>Enter a client name and upload their network discovery file.</p>
+        
+        <div class="form-group">
+          <label>Client Name</label>
+          <input type="text" id="client-name" placeholder="e.g., Acme Corporation">
+        </div>
+        
+        <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+          <div class="file-drop-icon">📁</div>
+          <div class="file-drop-text">
+            <strong>Click to select</strong> or drag & drop Excel file<br>
+            <small>Supports .xlsx files</small>
+          </div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+        
+        <div id="import-preview" style="display: none; margin-top: 20px;">
+          <h4 style="margin-bottom: 12px; color: #22c55e;">✓ Found <span id="preview-count">0</span> devices</h4>
+          <div style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; font-size: 12px;">
+            <div id="preview-subnets"></div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+          <button class="btn btn-primary" id="btn-next-1" onclick="wizardNext(1)" disabled>Next: Map Subnets →</button>
+        </div>
+      </div>
+      
+      <!-- Step 2: Subnet Mapping -->
+      <div class="wizard-step" id="wizard-step-2">
+        <h2>🗺️ Step 2: Map Subnets to Locations</h2>
+        <p>Assign each detected subnet to an office location. Unmapped subnets will show as "Unknown".</p>
+        
+        <div id="subnet-mapping-list"></div>
+        
+        <div class="add-office-inline">
+          <div class="form-group">
+            <label>Quick Add Office</label>
+            <input type="text" id="quick-office-name" placeholder="Office name">
+          </div>
+          <div class="form-group">
+            <label>Latitude</label>
+            <input type="text" id="quick-office-lat" placeholder="40.7128">
+          </div>
+          <div class="form-group">
+            <label>Longitude</label>
+            <input type="text" id="quick-office-lng" placeholder="-74.0060">
+          </div>
+          <button class="btn btn-primary" onclick="quickAddOffice()" style="height: 38px;">+ Add</button>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="wizardBack(2)">← Back</button>
+          <button class="btn btn-success" onclick="wizardNext(2)">Finish & View Map →</button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Complete -->
+      <div class="wizard-step" id="wizard-step-3">
+        <h2>✅ Import Complete!</h2>
+        <p>Your client data has been loaded and mapped.</p>
+        
+        <div id="import-summary" style="background: rgba(34, 197, 94, 0.1); border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <!-- Summary will be inserted here -->
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-success" onclick="finishImport()">View Map →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Subnet Mapping Modal (for editing after import) -->
+  <div class="modal-overlay" id="subnetModal">
+    <div class="modal modal-lg">
+      <h2>⚙️ Edit Subnet Mappings</h2>
+      <p>Modify subnet-to-location assignments for the current client.</p>
+      
+      <div id="edit-subnet-list"></div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('subnetModal')">Done</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Office Library Modal -->
+  <div class="modal-overlay" id="officeLibraryModal">
+    <div class="modal">
+      <h2>🏢 Office Location Library</h2>
+      <p>Manage your reusable library of office locations. These persist across all clients.</p>
+      
+      <div class="location-grid" id="office-library-list"></div>
+      
+      <h4 style="margin: 20px 0 12px;">Add New Office</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+        <div class="form-group" style="margin: 0;">
+          <label>Name</label>
+          <input type="text" id="new-office-name" placeholder="NYC HQ">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label>Latitude</label>
+          <input type="text" id="new-office-lat" placeholder="40.7128">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label>Longitude</label>
+          <input type="text" id="new-office-lng" placeholder="-74.0060">
+        </div>
+        <button class="btn btn-primary" onclick="addOfficeToLibrary()">Add</button>
+      </div>
+      
+      <p style="margin-top: 16px; font-size: 12px; color: #64748b;">
+        💡 Tip: Get coordinates from Google Maps by right-clicking any location and selecting the coordinates.
+      </p>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('officeLibraryModal')">Done</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ==================== STATE ====================
+    let devices = [];
+    let pendingImport = [];
+    let detectedSubnets = [];
+    let currentFilter = 'all';
+    let viewMode = 'locations';
+    let expandedLocations = new Set();
+    let clientName = '';
+    
+    // Client-specific subnet mappings (reset per client)
+    let subnetMappings = [];
+    
+    // Persistent office library (saved to localStorage)
+    let officeLibrary = JSON.parse(localStorage.getItem('officeLibrary')) || [
+      { name: 'NYC Office', lat: 40.7128, lng: -74.0060 },
+      { name: 'Dallas Data Center', lat: 32.7767, lng: -96.7970 },
+      { name: 'SF Office', lat: 37.7749, lng: -122.4194 },
+      { name: 'Chicago Office', lat: 41.8781, lng: -87.6298 },
+      { name: 'Toronto Office', lat: 43.6532, lng: -79.3832 },
+      { name: 'Vancouver Office', lat: 49.2827, lng: -123.1207 },
+      { name: 'Remote Workers', lat: 39.8283, lng: -98.5795 },
+    ];
+    
+    function saveOfficeLibrary() {
+      localStorage.setItem('officeLibrary', JSON.stringify(officeLibrary));
+    }
+    
+    // ==================== MAP SETUP ====================
+    const map = L.map('map').setView([39.8283, -98.5795], 4);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OSM &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+    
+    let markers = L.layerGroup().addTo(map);
+    
+    // ==================== CORE FUNCTIONS ====================
+    
+    function normalizeSubnet(subnet) {
+      return subnet.replace(/\.\*+/g, '').replace(/\*+/g, '').replace(/\.+$/, '').trim();
+    }
+    
+    function getSubnetFromIP(ip) {
+      const parts = ip.split('.');
+      if (parts.length >= 3) {
+        return parts.slice(0, 3).join('.');
+      }
+      return ip;
+    }
+    
+    function classifyDevice(ip) {
+      for (const mapping of subnetMappings) {
+        const normalizedSubnet = normalizeSubnet(mapping.subnet);
+        if (ip.startsWith(normalizedSubnet + '.') || ip === normalizedSubnet) {
+          const office = officeLibrary.find(o => o.name === mapping.location);
+          return {
+            classification: mapping.type === 'office' ? 'Office' : 'Remote/Home',
+            location: mapping.location,
+            lat: office ? office.lat : null,
+            lng: office ? office.lng : null
+          };
+        }
+      }
+      return { classification: 'Unknown', location: 'Unmapped', lat: null, lng: null };
+    }
+    
+    function getDevicesByLocation() {
+      const groups = {};
+      
+      devices.forEach(device => {
+        const loc = device.location || 'Unmapped';
+        if (!groups[loc]) {
+          groups[loc] = {
+            name: loc,
+            devices: [],
+            classification: device.classification,
+            lat: device.lat,
+            lng: device.lng,
+            subnets: new Set()
+          };
+        }
+        groups[loc].devices.push(device);
+        groups[loc].subnets.add(getSubnetFromIP(device.ip));
+      });
+      
+      return Object.values(groups);
+    }
+    
+    function updateDeviceClassifications() {
+      devices = devices.map(device => {
+        const info = classifyDevice(device.ip);
+        return { ...device, ...info };
+      });
+      renderAll();
+    }
+    
+    // ==================== NEW CLIENT ====================
+    
+    function newClient() {
+      if (devices.length > 0) {
+        if (!confirm('This will clear all current client data. Continue?')) return;
+      }
+      
+      devices = [];
+      pendingImport = [];
+      detectedSubnets = [];
+      subnetMappings = [];
+      clientName = '';
+      currentFilter = 'all';
+      expandedLocations.clear();
+      
+      document.getElementById('empty-state').style.display = 'block';
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('client-display').textContent = 'No client loaded - Import data to begin';
+      document.getElementById('btn-export').disabled = true;
+      
+      markers.clearLayers();
+    }
+    
+    // ==================== IMPORT WIZARD ====================
+    
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+      if (id === 'officeLibraryModal') renderOfficeLibrary();
+      if (id === 'subnetModal') renderEditSubnetList();
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      if (id === 'subnetModal') updateDeviceClassifications();
+    }
+    
+    function closeImportModal() {
+      document.getElementById('importModal').classList.remove('active');
+      resetWizard();
+    }
+    
+    function resetWizard() {
+      document.querySelectorAll('.wizard-step').forEach((s, i) => {
+        s.classList.toggle('active', i === 0);
+      });
+      document.querySelectorAll('.wizard-progress-step').forEach((s, i) => {
+        s.classList.remove('complete', 'current');
+        if (i === 0) s.classList.add('current');
+      });
+      document.getElementById('import-preview').style.display = 'none';
+      document.getElementById('btn-next-1').disabled = true;
+      document.getElementById('client-name').value = '';
+      document.getElementById('file-input').value = '';
+      pendingImport = [];
+      detectedSubnets = [];
+    }
+    
+    function wizardNext(step) {
+      if (step === 1) {
+        clientName = document.getElementById('client-name').value.trim() || 'Unnamed Client';
+        
+        // Detect subnets from pending import
+        const subnetCounts = {};
+        pendingImport.forEach(d => {
+          const subnet = getSubnetFromIP(d.ip);
+          subnetCounts[subnet] = (subnetCounts[subnet] || 0) + 1;
+        });
+        
+        detectedSubnets = Object.entries(subnetCounts)
+          .map(([subnet, count]) => ({ subnet, count, location: '', type: 'office' }))
+          .sort((a, b) => b.count - a.count);
+        
+        renderSubnetMappingList();
+      }
+      
+      if (step === 2) {
+        // Collect mappings from UI
+        subnetMappings = [];
+        detectedSubnets.forEach((s, i) => {
+          const select = document.getElementById(`subnet-loc-${i}`);
+          const type = document.getElementById(`subnet-type-${i}`);
+          if (select && select.value) {
+            subnetMappings.push({
+              subnet: s.subnet,
+              location: select.value,
+              type: type ? type.value : 'office'
+            });
+          }
+        });
+        
+        // Classify all devices
+        pendingImport = pendingImport.map(device => {
+          const info = classifyDevice(device.ip);
+          return { ...device, ...info };
+        });
+        
+        devices = pendingImport;
+        pendingImport = [];
+        
+        // Show summary
+        const groups = getDevicesByLocation();
+        const mapped = devices.filter(d => d.classification !== 'Unknown').length;
+        
+        document.getElementById('import-summary').innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+            <div>
+              <div style="font-size: 28px; font-weight: 700; color: #60a5fa;">${devices.length}</div>
+              <div style="font-size: 12px; color: #64748b;">Total Devices</div>
+            </div>
+            <div>
+              <div style="font-size: 28px; font-weight: 700; color: #22c55e;">${mapped}</div>
+              <div style="font-size: 12px; color: #64748b;">Mapped</div>
+            </div>
+            <div>
+              <div style="font-size: 28px; font-weight: 700; color: #a78bfa;">${groups.filter(g => g.lat).length}</div>
+              <div style="font-size: 12px; color: #64748b;">Locations</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Update progress UI
+      document.getElementById(`wizard-step-${step}`).classList.remove('active');
+      document.getElementById(`wizard-step-${step + 1}`).classList.add('active');
+      document.getElementById(`progress-${step}`).classList.remove('current');
+      document.getElementById(`progress-${step}`).classList.add('complete');
+      document.getElementById(`progress-${step + 1}`).classList.add('current');
+    }
+    
+    function wizardBack(step) {
+      document.getElementById(`wizard-step-${step}`).classList.remove('active');
+      document.getElementById(`wizard-step-${step - 1}`).classList.add('active');
+      document.getElementById(`progress-${step}`).classList.remove('current');
+      document.getElementById(`progress-${step - 1}`).classList.remove('complete');
+      document.getElementById(`progress-${step - 1}`).classList.add('current');
+    }
+    
+    function finishImport() {
+      closeImportModal();
+      resetWizard();
+      
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span>`;
+      document.getElementById('btn-export').disabled = false;
+      
+      renderAll();
+      
+      // Fit map to markers
+      setTimeout(() => {
+        if (markers.getLayers().length > 0) {
+          const bounds = markers.getBounds();
+          if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
+        }
+      }, 100);
+    }
+    
+    function renderSubnetMappingList() {
+      const container = document.getElementById('subnet-mapping-list');
+      
+      container.innerHTML = detectedSubnets.map((s, i) => `
+        <div class="subnet-mapping-row" id="subnet-row-${i}">
+          <div class="subnet">${s.subnet}.*</div>
+          <div class="device-count">${s.count} devices</div>
+          <select id="subnet-loc-${i}" onchange="updateSubnetRowStyle(${i})">
+            <option value="">-- Select Location --</option>
+            ${officeLibrary.map(o => `<option value="${o.name}">${o.name}</option>`).join('')}
+          </select>
+          <select id="subnet-type-${i}" style="width: 100px;">
+            <option value="office">Office</option>
+            <option value="remote">Remote</option>
+          </select>
+        </div>
+      `).join('');
+    }
+    
+    function updateSubnetRowStyle(index) {
+      const row = document.getElementById(`subnet-row-${index}`);
+      const select = document.getElementById(`subnet-loc-${index}`);
+      row.classList.toggle('mapped', select.value !== '');
+    }
+    
+    function quickAddOffice() {
+      const name = document.getElementById('quick-office-name').value.trim();
+      const lat = parseFloat(document.getElementById('quick-office-lat').value);
+      const lng = parseFloat(document.getElementById('quick-office-lng').value);
+      
+      if (!name || isNaN(lat) || isNaN(lng)) {
+        alert('Please fill in all fields');
+        return;
+      }
+      
+      officeLibrary.push({ name, lat, lng });
+      saveOfficeLibrary();
+      
+      document.getElementById('quick-office-name').value = '';
+      document.getElementById('quick-office-lat').value = '';
+      document.getElementById('quick-office-lng').value = '';
+      
+      renderSubnetMappingList();
+    }
+    
+    // ==================== FILE HANDLING ====================
+    
+    const fileDrop = document.getElementById('file-drop');
+    
+    fileDrop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileDrop.classList.add('dragover');
+    });
+    
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+    
+    fileDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDrop.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+    
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) processFile(file);
+    }
+    
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          pendingImport = [];
+          
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            
+            rows.forEach((row, idx) => {
+              const device = {
+                id: `${sheetName}-${idx}-${Date.now()}`,
+                name: row['Device name'] || row['Name'] || row['Hostname'] || `Device-${idx}`,
+                ip: row['IP address'] || row['IP'] || row['Address'] || '',
+                mac: row['Mac address'] || row['MAC'] || '',
+                type: row['Device type'] || row['Type'] || sheetName,
+                status: row['Status'] || 'Unknown',
+                lastSeen: row['Last seen'] || '',
+                manufacturer: row['Manufacturer'] || '',
+                os: row['OS platform'] || row['OS'] || ''
+              };
+              
+              if (device.ip && device.ip.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+                pendingImport.push(device);
+              }
+            });
+          });
+          
+          // Show preview
+          const subnetCounts = {};
+          pendingImport.forEach(d => {
+            const subnet = getSubnetFromIP(d.ip);
+            subnetCounts[subnet] = (subnetCounts[subnet] || 0) + 1;
+          });
+          
+          const subnetList = Object.entries(subnetCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([subnet, count]) => `<div style="display: flex; justify-content: space-between; padding: 4px 0;"><span style="font-family: monospace;">${subnet}.*</span><span style="color: #64748b;">${count} devices</span></div>`)
+            .join('');
+          
+          document.getElementById('import-preview').style.display = 'block';
+          document.getElementById('preview-count').textContent = pendingImport.length;
+          document.getElementById('preview-subnets').innerHTML = `<div style="margin-bottom: 8px; color: #94a3b8;">Detected subnets:</div>${subnetList}`;
+          document.getElementById('btn-next-1').disabled = false;
+          
+        } catch (error) {
+          alert('Error reading file: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    // ==================== RENDER FUNCTIONS ====================
+    
+    function renderAll() {
+      updateStats();
+      renderLocationList();
+      renderMap();
+    }
+    
+    function updateStats() {
+      const locationGroups = getDevicesByLocation();
+      document.getElementById('stat-total').textContent = devices.length;
+      document.getElementById('stat-office').textContent = devices.filter(d => d.classification === 'Office').length;
+      document.getElementById('stat-remote').textContent = devices.filter(d => d.classification === 'Remote/Home').length;
+      document.getElementById('stat-unknown').textContent = devices.filter(d => d.classification === 'Unknown').length;
+      document.getElementById('stat-locations').textContent = locationGroups.filter(g => g.lat && g.lng).length;
+      document.getElementById('location-count').textContent = locationGroups.length;
+    }
+    
+    function filterDevices(filter, element) {
+      currentFilter = filter;
+      document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+      if (element) element.classList.add('active');
+      renderLocationList();
+      renderMap();
+    }
+    
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('btn-locations').classList.toggle('active', mode === 'locations');
+      document.getElementById('btn-devices').classList.toggle('active', mode === 'devices');
+      renderMap();
+    }
+    
+    function getFilteredLocationGroups() {
+      let groups = getDevicesByLocation();
+      if (currentFilter === 'office') groups = groups.filter(g => g.classification === 'Office');
+      else if (currentFilter === 'remote') groups = groups.filter(g => g.classification === 'Remote/Home');
+      else if (currentFilter === 'unknown') groups = groups.filter(g => g.classification === 'Unknown');
+      return groups;
+    }
+    
+    function renderLocationList() {
+      const container = document.getElementById('location-list');
+      const groups = getFilteredLocationGroups();
+      
+      container.innerHTML = groups.map(group => {
+        const isExpanded = expandedLocations.has(group.name);
+        const typeClass = group.classification === 'Office' ? '' : group.classification === 'Remote/Home' ? 'remote' : 'unknown';
+        const subnets = Array.from(group.subnets).slice(0, 3).join(', ');
+        
+        return `
+          <div class="location-summary ${typeClass}" onclick="toggleLocation('${group.name}')">
+            <h4>
+              ${group.classification === 'Office' ? '🏢' : group.classification === 'Remote/Home' ? '🏠' : '❓'}
+              ${group.name}
+              <span class="device-count">${group.devices.length}</span>
+            </h4>
+            <div class="subnets">${subnets}${group.subnets.size > 3 ? '...' : ''}</div>
+          </div>
+          <ul class="device-list ${isExpanded ? 'expanded' : ''}" id="devices-${group.name.replace(/\s+/g, '-')}">
+            ${group.devices.slice(0, 20).map(d => `
+              <li class="device-item">
+                <div class="device-name">${d.name}</div>
+                <div class="device-meta">${d.ip} • ${d.type}</div>
+              </li>
+            `).join('')}
+            ${group.devices.length > 20 ? `<li class="device-item" style="color: #64748b;">... and ${group.devices.length - 20} more</li>` : ''}
+          </ul>
+        `;
+      }).join('');
+    }
+    
+    function toggleLocation(name) {
+      if (expandedLocations.has(name)) expandedLocations.delete(name);
+      else expandedLocations.add(name);
+      renderLocationList();
+    }
+    
+    function renderMap() {
+      markers.clearLayers();
+      
+      if (viewMode === 'locations') {
+        const groups = getFilteredLocationGroups();
+        
+        groups.forEach(group => {
+          if (group.lat && group.lng) {
+            const color = group.classification === 'Office' ? '#22c55e' : group.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const size = Math.min(Math.max(36, Math.sqrt(group.devices.length) * 8), 70);
+            
+            const icon = L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="
+                width: ${size}px; height: ${size}px; 
+                background: ${color}; 
+                border-radius: 50%; 
+                border: 3px solid white;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+                display: flex; align-items: center; justify-content: center;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: ${size > 50 ? 14 : 12}px;
+                font-weight: 700; color: white;
+              ">${group.devices.length}</div>`,
+              iconSize: [size, size],
+              iconAnchor: [size/2, size/2]
+            });
+            
+            const subnets = Array.from(group.subnets).slice(0, 5).join('<br>');
+            const deviceList = group.devices.slice(0, 5).map(d => `<div class="popup-device">${d.name} (${d.ip})</div>`).join('');
+            
+            const marker = L.marker([group.lat, group.lng], { icon })
+              .bindPopup(`
+                <div class="popup-title">${group.name}</div>
+                <div class="popup-row"><span class="popup-label">Type:</span> ${group.classification}</div>
+                <div class="popup-row"><span class="popup-label">Devices:</span> ${group.devices.length}</div>
+                <div class="popup-row"><span class="popup-label">Subnets:</span></div>
+                <div style="font-size: 11px; color: #94a3b8; margin-left: 8px;">${subnets}</div>
+                <div class="popup-devices">
+                  <div style="color: #64748b; margin-bottom: 4px;">Sample devices:</div>
+                  ${deviceList}
+                  ${group.devices.length > 5 ? `<div class="popup-device">... and ${group.devices.length - 5} more</div>` : ''}
+                </div>
+              `, { maxWidth: 300 });
+            
+            markers.addLayer(marker);
+          }
+        });
+      } else {
+        // Device view with randomization
+        const filtered = currentFilter === 'all' ? devices :
+                        currentFilter === 'office' ? devices.filter(d => d.classification === 'Office') :
+                        currentFilter === 'remote' ? devices.filter(d => d.classification === 'Remote/Home') :
+                        devices.filter(d => d.classification === 'Unknown');
+        
+        filtered.forEach(device => {
+          if (device.lat && device.lng) {
+            const color = device.classification === 'Office' ? '#22c55e' : device.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const lat = device.lat + (Math.random() - 0.5) * 0.4;
+            const lng = device.lng + (Math.random() - 0.5) * 0.4;
+            
+            const icon = L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+              iconSize: [12, 12],
+              iconAnchor: [6, 6]
+            });
+            
+            const marker = L.marker([lat, lng], { icon })
+              .bindPopup(`
+                <div class="popup-title">${device.name}</div>
+                <div class="popup-row"><span class="popup-label">IP:</span> ${device.ip}</div>
+                <div class="popup-row"><span class="popup-label">Type:</span> ${device.type}</div>
+                <div class="popup-row"><span class="popup-label">Location:</span> ${device.location}</div>
+              `);
+            
+            markers.addLayer(marker);
+          }
+        });
+      }
+      
+      if (markers.getLayers().length > 0) {
+        const bounds = markers.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+      }
+    }
+    
+    // ==================== OFFICE LIBRARY ====================
+    
+    function renderOfficeLibrary() {
+      const list = document.getElementById('office-library-list');
+      list.innerHTML = officeLibrary.map((o, i) => `
+        <div class="location-card">
+          <div class="location-info">
+            <h4>${o.name}</h4>
+            <p>${o.lat.toFixed(4)}, ${o.lng.toFixed(4)}</p>
+          </div>
+          <button class="btn btn-danger" onclick="removeOfficeFromLibrary(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+    
+    function addOfficeToLibrary() {
+      const name = document.getElementById('new-office-name').value.trim();
+      const lat = parseFloat(document.getElementById('new-office-lat').value);
+      const lng = parseFloat(document.getElementById('new-office-lng').value);
+      
+      if (!name || isNaN(lat) || isNaN(lng)) {
+        alert('Please fill in all fields');
+        return;
+      }
+      
+      officeLibrary.push({ name, lat, lng });
+      saveOfficeLibrary();
+      
+      document.getElementById('new-office-name').value = '';
+      document.getElementById('new-office-lat').value = '';
+      document.getElementById('new-office-lng').value = '';
+      
+      renderOfficeLibrary();
+    }
+    
+    function removeOfficeFromLibrary(index) {
+      officeLibrary.splice(index, 1);
+      saveOfficeLibrary();
+      renderOfficeLibrary();
+    }
+    
+    // ==================== EDIT SUBNET MAPPINGS ====================
+    
+    function renderEditSubnetList() {
+      const container = document.getElementById('edit-subnet-list');
+      
+      if (subnetMappings.length === 0) {
+        container.innerHTML = '<p style="color: #64748b; text-align: center; padding: 20px;">No subnet mappings configured.</p>';
+        return;
+      }
+      
+      container.innerHTML = subnetMappings.map((m, i) => `
+        <div class="subnet-mapping-row mapped">
+          <div class="subnet">${m.subnet}.*</div>
+          <div class="device-count">${devices.filter(d => d.ip.startsWith(m.subnet + '.')).length} devices</div>
+          <select id="edit-subnet-loc-${i}" onchange="updateMapping(${i}, 'location', this.value)">
+            ${officeLibrary.map(o => `<option value="${o.name}" ${o.name === m.location ? 'selected' : ''}>${o.name}</option>`).join('')}
+          </select>
+          <select id="edit-subnet-type-${i}" style="width: 100px;" onchange="updateMapping(${i}, 'type', this.value)">
+            <option value="office" ${m.type === 'office' ? 'selected' : ''}>Office</option>
+            <option value="remote" ${m.type === 'remote' ? 'selected' : ''}>Remote</option>
+          </select>
+        </div>
+      `).join('');
+    }
+    
+    function updateMapping(index, field, value) {
+      subnetMappings[index][field] = value;
+    }
+    
+    // ==================== EXPORT ====================
+    
+    function exportData() {
+      const groups = getDevicesByLocation();
+      
+      // Summary CSV
+      const summaryRows = [
+        ['Client', clientName],
+        ['Export Date', new Date().toISOString()],
+        [''],
+        ['Location', 'Device Count', 'Classification', 'Subnets', 'Latitude', 'Longitude'],
+        ...groups.map(g => [
+          g.name, g.devices.length, g.classification,
+          Array.from(g.subnets).join('; '), g.lat || '', g.lng || ''
+        ])
+      ];
+      
+      const csv = summaryRows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${clientName.replace(/\s+/g, '_')}_network_geo_summary.csv`;
+      a.click();
+    }
+    
+    // ==================== INIT ====================
+    // Nothing to render on init - wait for import
+  </script>
+</body>
+</html>
