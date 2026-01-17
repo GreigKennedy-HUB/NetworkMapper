@@ -4,12 +4,14 @@
 A web-based application for mapping network devices to physical office locations. Designed for IT/security teams to visualize where devices are located based on subnet-to-office mappings.
 
 **Target Users:** 5-20 engineers  
-**Hosting:** IIS on internal server  
+**Hosting:** IIS on internal server (Port 8080)  
 **Server Hostname:** edcv-utl-idd1  
 **Data Storage:** PostgreSQL 18  
 **Authentication:** None (internal network only)
 
-## Current Status: 🔧 IN PROGRESS - Testing Office Library functionality
+## Current Status: ✅ OPERATIONAL
+
+**Application URL:** http://edcv-utl-idd1:8080
 
 ---
 
@@ -20,14 +22,13 @@ A web-based application for mapping network devices to physical office locations
 │              Server: edcv-utl-idd1                          │
 │                                                             │
 │   IIS (Port 8080)                Flask API (Port 5050)      │
-│   └── NetworkMapper site         ├── /api/health            │
-│       └── index.html ◄──────────►├── /api/offices           │
-│              │                   ├── /api/clients           │
-│              │                   ├── /api/mappings          │
-│         Direct API call          └── /api/devices           │
-│         (CORS enabled)                    │                 │
-│                                           ▼                 │
-│                                  PostgreSQL 18              │
+│   └── NetworkMapper Site         ├── /api/offices           │
+│       └── index.html ◄──────────►├── /api/clients           │
+│              │                   ├── /api/atera/*           │
+│              │                   └── /api/devices           │
+│              │                            │                 │
+│         Direct API Call                   ▼                 │
+│    (http://edcv-utl-idd1:5050)   PostgreSQL 18              │
 │                                  └── network_mapper_db      │
 └─────────────────────────────────────────────────────────────┘
                     ▲
@@ -35,34 +36,19 @@ A web-based application for mapping network devices to physical office locations
          http://edcv-utl-idd1:8080
 ```
 
-**Note:** Port 5001 was unavailable (used by Live Tenant Analyzer app), so Flask runs on port 5050.
-
 ---
 
-## Environment Verification (2026-01-16)
+## Environment Status (2026-01-17)
 
 | Component | Status | Details |
 |-----------|--------|---------|
 | Python | ✅ Verified | 3.14.2 |
-| pip / Flask | ✅ Verified | Installed and working |
-| flask-cors | ✅ Installed | CORS enabled for cross-origin requests |
-| psycopg2-binary | ✅ Installed | PostgreSQL driver working |
-| PostgreSQL | ✅ Running | Version 18, password obtained |
-| PostgreSQL Database | ✅ Created | `network_mapper_db` with 4 tables |
-| IIS | ✅ Running | NetworkMapper site on port 8080 |
-| IIS URL Rewrite | ✅ Installed | Available but not yet configured |
-| Flask API | ✅ Running | Port 5050, health check passing |
-| HTML Frontend | ✅ Deployed | Connected to API successfully |
-
----
-
-## File Locations (Server: edcv-utl-idd1)
-
-| File | Location | Purpose |
-|------|----------|---------|
-| api_server.py | `E:\Apps\NetworkMapper\` | Flask REST API |
-| config.py | `E:\Apps\NetworkMapper\` | Database password (excluded from version control) |
-| index.html | `C:\inetpub\wwwroot\NetworkMapper\` | Frontend application |
+| pip / Flask | ✅ Installed | flask, flask-cors, psycopg2-binary |
+| PostgreSQL | ✅ Running | Version 18, network_mapper_db created |
+| IIS | ✅ Running | Port 8080, NetworkMapper site |
+| Flask API | ✅ Running | Port 5050 |
+| Atera API | ✅ Configured | API key in config.py |
+| Nominatim API | ✅ Integrated | City coordinate lookup |
 
 ---
 
@@ -74,41 +60,38 @@ A web-based application for mapping network devices to physical office locations
 |---------|-------------|---------|
 | Excel Import | Parse .xlsx files, extract device IPs | v1 |
 | Subnet Detection | Auto-detect unique subnets from imported data | v1 |
-| Office Library (Local) | Add/edit/remove office locations | v1 |
-| City Search | Local database + online fallback + manual entry | v6 |
+| Office Library | Add/edit/remove office locations (PostgreSQL) | v8 |
+| City Search | Local database + Nominatim API + manual entry | v9 |
 | Subnet Mapping | Assign subnets to offices with Office/Remote type | v2 |
 | Interactive Map | Leaflet.js with CartoDB dark tiles | v1 |
 | Location Clustering | One marker per office showing device count | v2 |
 | Device View | Individual device markers (scattered) | v2 |
 | Filtering | Filter by All/Office/Remote/Unmapped | v1 |
 | Sidebar | Expandable location groups with device lists | v2 |
-| New Client | Clear session for new client data | v3 |
-| Import Wizard | 3-step guided import process | v3 |
+| New Client Wizard | 3-step guided import process | v3 |
 | Map Refresh | Fix tile loading issues without data loss | v6 |
 | Export CSV | Summary report export | v1 |
 | Local Backup | JSON export/import for offline backup | v6 |
-| PostgreSQL Database | 4 tables created and accessible | v8 |
-| Flask API | REST endpoints running on port 5050 | v8 |
-| IIS Hosting | NetworkMapper site on port 8080 | v8 |
-| API Connection | Frontend connecting to backend successfully | v8 |
+| PostgreSQL Integration | Full database persistence | v8 |
+| Flask API | REST API for all database operations | v8 |
+| IIS Hosting | Standalone site on port 8080 | v8 |
+| Load/Save Client | Persist and retrieve client mappings | v8 |
+| Delete Client | Remove client data from database | v8 |
+| **Atera API Integration** | Hybrid import - Excel or direct from Atera | v9 |
+| **Auto IP Geolocation** | Public IPs auto-located via ip-api.com | v9 |
+| **Nominatim City Search** | OpenStreetMap-based coordinate lookup | v9 |
+| **Auto Office Creation** | Create office from Atera customer address | v9 |
+| **Offices Without Coords** | Support offices that appear only in sidebar | v9 |
+| **MA-1 Import** | Bulk import office locations from MA-1 Excel | v10 |
+| **Office Library Redesign** | State-grouped collapsible sections | v10 |
+| **City/State Schema** | Separate city and state fields in database | v10 |
 
-### 🔧 In Progress (2026-01-16)
+### 🔄 In Progress
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| Office Library (DB) | Add/view offices via PostgreSQL | Testing - Decimal conversion fix applied |
-| Save Client | Persist client mappings to database | Ready to test |
-| Load Client | Dropdown to load saved client mappings | Ready to test |
-| Delete Client | Remove client data from database | Ready to test |
-
-### 📋 Planned / Next Steps
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| IIS Reverse Proxy | Route `/api` through IIS instead of direct port | Medium |
-| Flask Auto-Start | Task Scheduler to start API on server boot | High |
-| Delta Import | Handle updated Excel files (add/remove devices) | Medium |
-| **Atera API Integration** | Pull device data directly from Atera instead of Excel import | High (Future Phase) |
+| IIS Reverse Proxy | Route /api to Flask (currently using direct URL) | Optional improvement |
+| Task Scheduler | Auto-start Flask API on server reboot | To configure |
 
 ### ❌ Abandoned
 
@@ -116,57 +99,38 @@ A web-based application for mapping network devices to physical office locations
 |---------|-------------|--------|
 | SharePoint Integration | Store data in SharePoint Lists | JavaScript blocked in SP document viewer |
 
----
+### 📋 Planned / Future
 
-## 🔮 Atera Integration (Future Phase)
-
-**Overview:** Replace Excel import with direct Atera API calls to fetch device inventory.
-
-**Requirements:**
-- Atera API key (stored in .env file on server)
-- Python script to fetch devices from Atera API
-- Map Atera fields to existing device schema
-
-**Reference:** User has existing Python script for Atera API integration (to be provided)
-
-**Data Mapping (tentative):**
-| Atera Field | App Field |
-|-------------|-----------|
-| MachineName | name |
-| IpAddresses | ip_address |
-| MacAddresses | mac_address |
-| DeviceType | device_type |
-| Vendor | manufacturer |
-| OS | os |
-
-**Implementation Steps:**
-1. ✅ Complete base application with PostgreSQL (in progress)
-2. Obtain Atera API credentials
-3. Create .env file for API key storage
-4. Adapt existing Atera Python script for this application
-5. Add "Import from Atera" option alongside Excel import
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Authentication | Track who created/modified data | Low |
+| Audit Trail | Log changes with timestamps and users | Low |
+| Map Themes | Light/dark/satellite tile options | Low |
+| Device Search | Search devices by name/IP across clients | Medium |
+| Subnet Auto-Suggest | Suggest office based on similar client subnets | Low |
 
 ---
 
 ## PostgreSQL Database Schema
 
-**Database:** `network_mapper_db`  
-**Status:** ✅ Created with all tables
+**Database:** `network_mapper_db`
 
 ### 1. office_locations
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | SERIAL | PRIMARY KEY | Auto-increment ID |
-| name | VARCHAR(255) | NOT NULL, UNIQUE | Office name (e.g., "Merrillville Office") |
-| latitude | DECIMAL(9,6) | NOT NULL | Decimal degrees (e.g., 41.482800) |
-| longitude | DECIMAL(9,6) | NOT NULL | Decimal degrees (e.g., -87.332800) |
+| name | VARCHAR(255) | NOT NULL, UNIQUE | Office name (e.g., "Chicago, IL") |
+| **city** | VARCHAR(100) | | City name (e.g., "Chicago") |
+| **state** | VARCHAR(10) | | State code (e.g., "IL") |
+| latitude | DECIMAL(9,6) | | Decimal degrees (NULL = sidebar only) |
+| longitude | DECIMAL(9,6) | | Decimal degrees (NULL = sidebar only) |
 | created_at | TIMESTAMP | DEFAULT NOW() | When record was created |
 
 ### 2. clients
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | SERIAL | PRIMARY KEY | Auto-increment ID |
-| name | VARCHAR(255) | NOT NULL, UNIQUE | Client name (e.g., "ABC Corporation") |
+| name | VARCHAR(255) | NOT NULL, UNIQUE | Client name |
 | created_at | TIMESTAMP | DEFAULT NOW() | When client was first saved |
 | updated_at | TIMESTAMP | DEFAULT NOW() | When client was last updated |
 
@@ -185,93 +149,105 @@ A web-based application for mapping network devices to physical office locations
 | id | SERIAL | PRIMARY KEY | Auto-increment ID |
 | client_id | INTEGER | FOREIGN KEY → clients(id) | References client |
 | name | VARCHAR(255) | NOT NULL | Device name |
-| ip_address | VARCHAR(15) | NOT NULL | Device IP (e.g., "192.168.1.100") |
+| ip_address | VARCHAR(15) | NOT NULL | Device IP |
 | mac_address | VARCHAR(17) | | MAC address if available |
-| device_type | VARCHAR(100) | | Type from Excel |
+| device_type | VARCHAR(100) | | Type from Excel/Atera |
 | manufacturer | VARCHAR(100) | | Device manufacturer |
 | os | VARCHAR(100) | | Operating system |
 
 ---
 
-## Tools & Dependencies
+## Recent Changes (2026-01-17)
 
-### Frontend Libraries (CDN)
-| Library | Version | CDN URL | Purpose |
-|---------|---------|---------|---------|
-| Leaflet.js | 1.9.4 | unpkg.com/leaflet@1.9.4 | Interactive mapping |
-| SheetJS (xlsx) | 0.18.5 | cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5 | Excel file parsing |
+### Database Schema Migration
+- Added `city` and `state` columns to `office_locations` table
+- Enables reliable state-based grouping in Office Library
+- Migration script: `migrate_offices.sql`
 
-### Backend (Server: edcv-utl-idd1)
-| Component | Version | Location | Purpose |
-|-----------|---------|----------|---------|
-| Python | 3.14.2 | System | Runtime for API server |
-| Flask | Latest | pip | REST API framework |
-| flask-cors | Latest | pip | CORS support |
-| psycopg2-binary | Latest | pip | PostgreSQL driver |
-| PostgreSQL | 18 | System | Database |
-| IIS | Existing | System | Web server |
+### MA-1 Import Feature
+- Import office locations from MA-1 Excel files (DD-General tab)
+- Extracts site names from Row 22, location types from Row 24
+- Auto-looks up coordinates via Nominatim API
+- Smart parsing of site name formats:
+  - "West Hartford CT (HQ)" → West Hartford, CT
+  - "Alabama (Fairhope)" → Fairhope, AL
+  - "Atlanta Area (Marietta)" → Marietta, GA
+- Remote worker sites auto-detected and skipped
+- Three entry points: Step 1 reminder, Step 2 tab, Office Library
 
-### Fonts (Google Fonts)
-| Font | Use |
-|------|-----|
-| JetBrains Mono | Code, monospace elements |
-| Inter | UI text |
+### Office Library Redesign
+- Collapsible state/province groups
+- Alphabetical sorting within groups
+- "Other" category for offices without state info (sorted last)
+- City-based display names with coordinates
+- Office count badges per state
 
-### Map Tiles
-| Provider | Style | URL Pattern |
-|----------|-------|-------------|
-| CartoDB | Dark Matter | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` |
+### MA-1 Import Display Improvements
+- Grouped by category: Office Locations, Already in Library, Remote Workers, Not Found
+- Uses Nominatim-accurate city/state for display (not parsed values)
+- Clear visual separation with color-coded sections
+- Explanatory text for skipped remote workers
 
-### APIs
-| API | Purpose | Auth | Port |
-|-----|---------|------|------|
-| Flask API | Data storage (CRUD operations) | None (internal network) | 5050 |
-| geocode.maps.co | Online city lookup (fallback) | None (free tier) | N/A |
+---
+
+## File Inventory
+
+| File | Purpose | Location |
+|------|---------|----------|
+| index.html | Main application | C:\inetpub\wwwroot\NetworkMapper\ |
+| api_server.py | Flask REST API | E:\Apps\NetworkMapper\ |
+| config.py | Database & Atera credentials | E:\Apps\NetworkMapper\ |
+| migrate_offices.sql | Schema migration script | E:\Apps\NetworkMapper\ |
+| PROJECT_TRACKER.md | This document | Project folder |
+
+### Development Workflow
+```
+C:\DEV\NetworkMapper\           <- Development
+├── frontend\
+│   └── index.html
+├── backend\
+│   └── api_server.py
+└── deploy.bat                  <- Copies to production
+
+C:\inetpub\wwwroot\NetworkMapper\  <- IIS Production
+└── index.html
+
+E:\Apps\NetworkMapper\          <- API Production
+├── api_server.py
+└── config.py
+```
 
 ---
 
 ## Setup Checklist
 
-### Server Setup (edcv-utl-idd1)
-- [x] Verify Python installed (3.14.2)
-- [x] Verify pip works
-- [x] Install Flask (`pip install flask`)
-- [x] Install flask-cors (`pip install flask-cors`)
-- [x] Install psycopg2-binary (`pip install psycopg2-binary`)
-- [x] Verify PostgreSQL installed (v18)
-- [x] Obtain PostgreSQL credentials ✅
-- [x] Create database `network_mapper_db` (via pgAdmin 4)
-- [x] Run create_tables.sql (via pgAdmin 4 Query Tool)
-- [x] Deploy api_server.py to `E:\Apps\NetworkMapper\`
-- [x] Create config.py with DB_PASSWORD
-- [x] Start Flask API on port 5050
-- [ ] Configure Task Scheduler for API startup on boot
+### Server Setup (edcv-utl-idd1) ✅ COMPLETE
+- [x] Python installed (3.14.2)
+- [x] pip works
+- [x] Flask installed
+- [x] psycopg2-binary installed
+- [x] PostgreSQL 18 running
+- [x] Database `network_mapper_db` created
+- [x] Tables created
+- [x] API deployed and running on port 5050
+- [x] Atera API key configured
 
-### IIS Setup
-- [x] Verify IIS running
-- [x] Verify URL Rewrite module installed
-- [x] Create NetworkMapper site on port 8080
-- [x] Deploy index.html to `C:\inetpub\wwwroot\NetworkMapper\`
-- [x] Update API_BASE to `http://edcv-utl-idd1:5050/api`
-- [x] Test application access - showing "Connected" ✅
-- [ ] (Optional) Configure reverse proxy to use `/api` path
+### IIS Setup ✅ COMPLETE
+- [x] IIS running
+- [x] NetworkMapper site created (port 8080)
+- [x] index.html deployed
+- [x] Application accessible
 
-### Application Testing
-- [x] Health check endpoint working (`/api/health`)
-- [ ] Office Library - Add office (Decimal fix applied, needs retest)
-- [ ] Office Library - View offices
-- [ ] Office Library - Delete office
-- [ ] Client Import - New client wizard
-- [ ] Client Save - Persist to database
-- [ ] Client Load - Retrieve from database
-- [ ] Client Delete - Remove from database
-- [ ] Full end-to-end test with real data
+### Database Migration (2026-01-17) ⏳ PENDING
+- [ ] Run `migrate_offices.sql` to add city/state columns
+- [ ] Verify existing offices parsed correctly
+- [ ] Deploy updated api_server.py
+- [ ] Deploy updated index.html
 
 ### Team Rollout
-- [ ] Complete all testing
-- [ ] Share URL with team (`http://edcv-utl-idd1:8080`)
+- [ ] Share URL with team (http://edcv-utl-idd1:8080)
 - [ ] Provide quick-start guide
-- [ ] Designate admin for office library management
+- [ ] Configure Task Scheduler for API auto-start
 
 ---
 
@@ -286,70 +262,72 @@ A web-based application for mapping network devices to physical office locations
 | v5 | 2026-01-14 | City search (local database) |
 | v6 | 2026-01-14 | Hybrid city search, manual entry, map refresh |
 | v7 | 2026-01-15 | SharePoint integration (failed - JS blocked) |
-| v8 | 2026-01-16 | PostgreSQL + IIS integration (in progress) |
+| v8 | 2026-01-16 | PostgreSQL + IIS integration (working) |
+| v9 | 2026-01-16 | Atera API, Nominatim, auto-office creation |
+| v10 | 2026-01-17 | MA-1 import, Office Library redesign, city/state schema |
 
 ---
 
-## Known Issues / Bugs Found
+## API Endpoints
 
-| Issue | Status | Resolution |
-|-------|--------|------------|
-| Map tile loading | Known | Use Refresh Map button |
-| Large Excel files | Known | Performance may degrade with 1000+ devices |
-| Concurrent editing | Known | Last-write-wins (no real-time sync) |
-| City database | Known | Limited to ~100 cities; use manual entry for others |
-| SharePoint hosting | Abandoned | Does not work due to JS security restrictions |
-| Port 5001 conflict | Resolved | Changed to port 5050 (5001 used by Live Tenant Analyzer) |
-| PostgreSQL Decimal type | Fixed | Added `convert_decimals()` function in api_server.py |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/health | Health check |
+| GET | /api/offices | List all offices |
+| POST | /api/offices | Create office (name, city, state, lat, lng) |
+| DELETE | /api/offices/:id | Delete office |
+| GET | /api/clients | List all clients |
+| POST | /api/clients | Create client |
+| DELETE | /api/clients/:id | Delete client |
+| GET | /api/clients/:id/full | Get client with mappings & devices |
+| POST | /api/clients/:id/mappings | Save subnet mappings |
+| POST | /api/clients/:id/devices | Save devices |
+| GET | /api/atera/customers | List Atera customers |
+| GET | /api/atera/customers/:id/devices | Get devices for customer |
+
+---
+
+## Known Issues / Limitations
+
+1. **Map tile loading** - Occasionally fails; use Refresh Map button
+2. **Large datasets** - Performance may degrade with 1000+ devices
+3. **Concurrent editing** - Last-write-wins (no real-time sync)
+4. **API auto-start** - Flask must be manually started after server reboot
+5. **Direct API URL** - Uses http://edcv-utl-idd1:5050 (reverse proxy not configured)
 
 ---
 
 ## Lessons Learned
 
 ### SharePoint Document Hosting (2026-01-15)
-SharePoint document libraries do **not** execute JavaScript properly. HTML files opened from SharePoint Documents are either:
-- Shown in a preview mode that blocks JS
-- Downloaded rather than executed
+SharePoint document libraries do **not** execute JavaScript properly. HTML files are either shown in preview mode that blocks JS or downloaded.
 
-**Proper SharePoint custom apps require:**
-- SharePoint Framework (SPFx) - complex development setup
-- Power Apps - low-code but different paradigm
-
-**Resolution:** Switched to IIS + PostgreSQL architecture on internal server.
+**Resolution:** Switched to IIS + PostgreSQL architecture.
 
 ### Port Conflicts (2026-01-16)
-Always verify port availability before deployment. Port 5001 was already in use by another application (Live Tenant Analyzer).
+Port 5001 was already in use by "Live Tenant Analyzer" application.
 
 **Resolution:** Changed Flask API to port 5050.
 
-### PostgreSQL Decimal Type (2026-01-16)
-PostgreSQL returns DECIMAL columns as Python `Decimal` objects, which are not JSON-serializable by default. Flask's `jsonify()` fails silently or throws errors.
+### State Grouping (2026-01-17)
+Parsing state from freeform office names is unreliable. "Chicago Office" can't determine state.
 
-**Resolution:** Added `convert_decimals()` helper function to convert Decimal to float before returning JSON responses.
+**Resolution:** Added dedicated `city` and `state` columns to database schema.
 
----
+### Nominatim for Accurate Data (2026-01-17)
+Parsed MA-1 site names often have inaccurate city/state (e.g., "Atlanta Area (Marietta)" → "Marietta, Atlanta"). Nominatim API returns accurate geocoded data.
 
-## URLs & Access
-
-| Resource | URL |
-|----------|-----|
-| Application | http://edcv-utl-idd1:8080 |
-| API Health Check | http://edcv-utl-idd1:5050/api/health |
-| API Offices | http://edcv-utl-idd1:5050/api/offices |
-| API Clients | http://edcv-utl-idd1:5050/api/clients |
+**Resolution:** Use Nominatim-provided city/state for display and storage, not parsed values.
 
 ---
 
 ## Contacts / Resources
 
-- **Application Server:** edcv-utl-idd1
 - **Application URL:** http://edcv-utl-idd1:8080
 - **API URL:** http://edcv-utl-idd1:5050/api
 - **PostgreSQL:** localhost:5432 on edcv-utl-idd1
-- **Database:** network_mapper_db
-- **API Files:** E:\Apps\NetworkMapper\
-- **Web Files:** C:\inetpub\wwwroot\NetworkMapper\
 - **Leaflet Docs:** leafletjs.com/reference.html
 - **SheetJS Docs:** docs.sheetjs.com
 - **Flask Docs:** flask.palletsprojects.com
-- **psycopg2 Docs:** psycopg.org/docs/
+- **Nominatim API:** nominatim.openstreetmap.org
+- **Atera API Docs:** app.atera.com/apisettings (internal)
