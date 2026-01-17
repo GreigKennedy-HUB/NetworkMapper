@@ -1,0 +1,1 @@
+DB_PASSWORD = """2%`r)F{bS*DRT9K|=='$c"""
