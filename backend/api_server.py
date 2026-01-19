@@ -296,9 +296,14 @@ def save_client_mappings(client_id):
         cur.execute('DELETE FROM client_mappings WHERE client_id = %s', (client_id,))
         
         for mapping in data:
+            # Truncate fields to prevent database overflow errors
+            subnet = (mapping.get('subnet', '') or '')[:50]
+            office_name = (mapping.get('office_name', '') or '')[:255]
+            mapping_type = (mapping.get('mapping_type', 'office') or 'office')[:50]
+            
             cur.execute(
                 'INSERT INTO client_mappings (client_id, subnet, office_name, mapping_type) VALUES (%s, %s, %s, %s)',
-                (client_id, mapping['subnet'], mapping['office_name'], mapping['mapping_type'])
+                (client_id, subnet, office_name, mapping_type)
             )
         
         cur.execute('UPDATE clients SET updated_at = %s WHERE id = %s', (datetime.now(), client_id))
@@ -307,6 +312,9 @@ def save_client_mappings(client_id):
         conn.close()
         return jsonify({'saved': len(data)})
     except Exception as e:
+        import traceback
+        print(f"Error saving mappings for client {client_id}: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 # ============================================
@@ -335,24 +343,45 @@ def save_client_devices(client_id):
         conn = get_db()
         cur = conn.cursor()
         
+        # Delete existing devices first
         cur.execute('DELETE FROM client_devices WHERE client_id = %s', (client_id,))
+        conn.commit()  # Commit the delete before inserting
+        
+        # Track seen IPs to avoid duplicates within the batch
+        seen_ips = set()
+        saved_count = 0
         
         for device in data:
+            # Truncate fields to prevent database overflow errors
+            name = (device.get('name', '') or '')[:255]
+            ip_address = (device.get('ip_address', '') or '')[:50]
+            mac_address = (device.get('mac_address', '') or '')[:500]
+            device_type = (device.get('device_type', '') or '')[:100]
+            manufacturer = (device.get('manufacturer', '') or '')[:200]
+            os_info = (device.get('os', '') or '')[:200]
+            
+            # Skip if we've already seen this IP (avoid unique constraint violation)
+            if ip_address in seen_ips:
+                continue
+            seen_ips.add(ip_address)
+            
             cur.execute(
                 '''INSERT INTO client_devices 
                    (client_id, name, ip_address, mac_address, device_type, manufacturer, os) 
                    VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-                (client_id, device.get('name', ''), device.get('ip_address', ''),
-                 device.get('mac_address', ''), device.get('device_type', ''),
-                 device.get('manufacturer', ''), device.get('os', ''))
+                (client_id, name, ip_address, mac_address, device_type, manufacturer, os_info)
             )
+            saved_count += 1
         
         cur.execute('UPDATE clients SET updated_at = %s WHERE id = %s', (datetime.now(), client_id))
         
         conn.commit()
         conn.close()
-        return jsonify({'saved': len(data)})
+        return jsonify({'saved': saved_count, 'duplicates_skipped': len(data) - saved_count})
     except Exception as e:
+        import traceback
+        print(f"Error saving devices for client {client_id}: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 # ============================================

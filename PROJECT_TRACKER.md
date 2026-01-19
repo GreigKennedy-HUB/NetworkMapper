@@ -38,7 +38,7 @@ A web-based application for mapping network devices to physical office locations
 
 ---
 
-## Environment Status (2026-01-17)
+## Environment Status (2026-01-19)
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -77,14 +77,22 @@ A web-based application for mapping network devices to physical office locations
 | IIS Hosting | Standalone site on port 8080 | v8 |
 | Load/Save Client | Persist and retrieve client mappings | v8 |
 | Delete Client | Remove client data from database | v8 |
-| **Atera API Integration** | Hybrid import - Excel or direct from Atera | v9 |
-| **Auto IP Geolocation** | Public IPs auto-located via ip-api.com | v9 |
-| **Nominatim City Search** | OpenStreetMap-based coordinate lookup | v9 |
-| **Auto Office Creation** | Create office from Atera customer address | v9 |
-| **Offices Without Coords** | Support offices that appear only in sidebar | v9 |
-| **MA-1 Import** | Bulk import office locations from MA-1 Excel | v10 |
-| **Office Library Redesign** | State-grouped collapsible sections | v10 |
-| **City/State Schema** | Separate city and state fields in database | v10 |
+| Atera API Integration | Hybrid import - Excel or direct from Atera | v9 |
+| Auto IP Geolocation | Public IPs auto-located via ip-api.com | v9 |
+| Nominatim City Search | OpenStreetMap-based coordinate lookup | v9 |
+| Auto Office Creation | Create office from Atera customer address | v9 |
+| Offices Without Coords | Support offices that appear only in sidebar | v9 |
+| MA-1 Import | Bulk import office locations from MA-1 Excel | v10 |
+| Office Library Redesign | State-grouped collapsible sections | v10 |
+| City/State Schema | Separate city and state fields in database | v10 |
+| **MA-1 Edit/Retry** | Edit "not found" locations and retry geocoding | v11 |
+| **MA-1 Deduplication** | Merge duplicate city/state entries before import | v11 |
+| **Step 1 Workflow Redesign** | Two-path layout: Recommended (MA-1) vs Continue | v11 |
+| **Grouped Office Dropdown** | Offices grouped by state, recently added at top | v11 |
+| **Map Auto-Refresh** | Multiple strategies to fix tiles on first load | v11 |
+| **Improved Text Contrast** | Brighter text colors throughout for readability | v11 |
+| **API Data Truncation** | Handle long MAC addresses and other fields | v11 |
+| **Duplicate IP Handling** | Skip duplicate IPs when saving devices | v11 |
 
 ### 🔄 In Progress
 
@@ -98,16 +106,19 @@ A web-based application for mapping network devices to physical office locations
 | Feature | Description | Reason |
 |---------|-------------|--------|
 | SharePoint Integration | Store data in SharePoint Lists | JavaScript blocked in SP document viewer |
+| MA-1 "Remote" Detection | Skip sites with "remote" in name | "Remote" in MA-1 means remote office, not remote worker |
 
 ### 📋 Planned / Future
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
+| **Delete Companies** | Remove companies from the system | High |
 | Authentication | Track who created/modified data | Low |
 | Audit Trail | Log changes with timestamps and users | Low |
 | Map Themes | Light/dark/satellite tile options | Low |
 | Device Search | Search devices by name/IP across clients | Medium |
 | Subnet Auto-Suggest | Suggest office based on similar client subnets | Low |
+| Searchable Dropdown | Type-to-filter office selection | Medium |
 
 ---
 
@@ -120,8 +131,8 @@ A web-based application for mapping network devices to physical office locations
 |--------|------|-------------|-------------|
 | id | SERIAL | PRIMARY KEY | Auto-increment ID |
 | name | VARCHAR(255) | NOT NULL, UNIQUE | Office name (e.g., "Chicago, IL") |
-| **city** | VARCHAR(100) | | City name (e.g., "Chicago") |
-| **state** | VARCHAR(10) | | State code (e.g., "IL") |
+| city | VARCHAR(100) | | City name (e.g., "Chicago") |
+| state | VARCHAR(10) | | State code (e.g., "IL") |
 | latitude | DECIMAL(9,6) | | Decimal degrees (NULL = sidebar only) |
 | longitude | DECIMAL(9,6) | | Decimal degrees (NULL = sidebar only) |
 | created_at | TIMESTAMP | DEFAULT NOW() | When record was created |
@@ -149,44 +160,63 @@ A web-based application for mapping network devices to physical office locations
 | id | SERIAL | PRIMARY KEY | Auto-increment ID |
 | client_id | INTEGER | FOREIGN KEY → clients(id) | References client |
 | name | VARCHAR(255) | NOT NULL | Device name |
-| ip_address | VARCHAR(15) | NOT NULL | Device IP |
-| mac_address | VARCHAR(17) | | MAC address if available |
+| ip_address | VARCHAR(50) | NOT NULL | Device IP |
+| mac_address | VARCHAR(500) | | MAC address(es) - expanded for Atera |
 | device_type | VARCHAR(100) | | Type from Excel/Atera |
-| manufacturer | VARCHAR(100) | | Device manufacturer |
-| os | VARCHAR(100) | | Operating system |
+| manufacturer | VARCHAR(200) | | Device manufacturer |
+| os | VARCHAR(200) | | Operating system |
+
+**Note:** `mac_address` column was expanded from VARCHAR(17) to VARCHAR(500) on 2026-01-19 to accommodate Atera's multiple MAC address format.
 
 ---
 
-## Recent Changes (2026-01-17)
+## Recent Changes (2026-01-19)
 
-### Database Schema Migration
-- Added `city` and `state` columns to `office_locations` table
-- Enables reliable state-based grouping in Office Library
-- Migration script: `migrate_offices.sql`
+### Step 1 Wizard Redesign
+- **Two-path workflow** at top of Step 1:
+  - **Recommended** (green): "First time with this client?" → Import MA-1 First
+  - **Alternative** (gray): "Offices already in library?" → Continue to Device Import
+- Clear visual separation between workflow choice and device import section
+- Client name included in subnet mapping instructions
 
-### MA-1 Import Feature
-- Import office locations from MA-1 Excel files (DD-General tab)
-- Extracts site names from Row 22, location types from Row 24
-- Auto-looks up coordinates via Nominatim API
-- Smart parsing of site name formats:
-  - "West Hartford CT (HQ)" → West Hartford, CT
-  - "Alabama (Fairhope)" → Fairhope, AL
-  - "Atlanta Area (Marietta)" → Marietta, GA
-- Remote worker sites auto-detected and skipped
-- Three entry points: Step 1 reminder, Step 2 tab, Office Library
+### MA-1 Import Improvements
+- **Edit/Retry for "Not Found"**: Edit button on each not-found entry, inline text editing, retry search with edited text
+- **Deduplication**: Merge duplicate city/state combinations before display (e.g., two Columbia, SC sites become one entry showing "From 2 sites: ...")
+- **Reads City/State rows directly**: Changed from parsing Site Name (Row 22) to reading City (Row 25) and State (Row 26) directly
+- **Removed "remote" keyword detection**: "Remote" in MA-1 context means remote office location, not remote worker
+- **Dynamic button**: Shows "Done" instead of "Add Selected Offices" when all locations already in library
 
-### Office Library Redesign
-- Collapsible state/province groups
-- Alphabetical sorting within groups
-- "Other" category for offices without state info (sorted last)
-- City-based display names with coordinates
-- Office count badges per state
+### Grouped Office Dropdown
+- Offices organized by state with optgroup headers (── SC ──, ── CT ──, etc.)
+- "Recently Added" section at top shows offices imported via MA-1 in current session
+- Better color contrast: dark blue background (#1e293b) with light text (#e2e8f0)
+- State headers in blue (#60a5fa) for visual distinction
 
-### MA-1 Import Display Improvements
-- Grouped by category: Office Locations, Already in Library, Remote Workers, Not Found
-- Uses Nominatim-accurate city/state for display (not parsed values)
-- Clear visual separation with color-coded sections
-- Explanatory text for skipped remote workers
+### Map Auto-Refresh
+- Multiple `invalidateSize()` calls at 100ms, 300ms, 500ms, 1s, 2s after page load
+- Tile layer `loading` and `load` event handlers
+- ResizeObserver watching map container
+- Visibility change handler for tab switching
+- **Map now loads correctly on first visit without manual refresh**
+
+### Text Contrast Improvements
+- Brightened muted text from #64748b/#94a3b8 to #b8c5d6
+- Modal text and form labels now use #cbd5e1
+- Headings (h3) use #e2e8f0
+
+### API Fixes (api_server.py)
+- **Data truncation**: All fields truncated to prevent database overflow
+  - name: 255 chars, ip_address: 50 chars, mac_address: 500 chars
+  - device_type: 100 chars, manufacturer/os: 200 chars
+- **Duplicate IP handling**: Skip duplicate IPs within same batch (tracks seen IPs)
+- **Better error logging**: Full traceback printed to console on errors
+- **Commit before insert**: DELETE committed before INSERT to avoid constraint issues
+
+### Database Schema Change
+```sql
+ALTER TABLE client_devices ALTER COLUMN mac_address TYPE VARCHAR(500);
+```
+Required for Atera imports where devices have multiple MAC addresses.
 
 ---
 
@@ -238,11 +268,14 @@ E:\Apps\NetworkMapper\          <- API Production
 - [x] index.html deployed
 - [x] Application accessible
 
-### Database Migration (2026-01-17) ⏳ PENDING
-- [ ] Run `migrate_offices.sql` to add city/state columns
-- [ ] Verify existing offices parsed correctly
-- [ ] Deploy updated api_server.py
-- [ ] Deploy updated index.html
+### Database Migration (2026-01-17) ✅ COMPLETE
+- [x] Run `migrate_offices.sql` to add city/state columns
+- [x] Verify existing offices parsed correctly
+- [x] Deploy updated api_server.py
+- [x] Deploy updated index.html
+
+### Database Update (2026-01-19) ✅ COMPLETE
+- [x] Expand mac_address column to VARCHAR(500)
 
 ### Team Rollout
 - [ ] Share URL with team (http://edcv-utl-idd1:8080)
@@ -265,6 +298,7 @@ E:\Apps\NetworkMapper\          <- API Production
 | v8 | 2026-01-16 | PostgreSQL + IIS integration (working) |
 | v9 | 2026-01-16 | Atera API, Nominatim, auto-office creation |
 | v10 | 2026-01-17 | MA-1 import, Office Library redesign, city/state schema |
+| v11 | 2026-01-19 | MA-1 edit/retry, deduplication, Step 1 redesign, grouped dropdowns, map auto-refresh, API fixes |
 
 ---
 
@@ -289,7 +323,7 @@ E:\Apps\NetworkMapper\          <- API Production
 
 ## Known Issues / Limitations
 
-1. **Map tile loading** - Occasionally fails; use Refresh Map button
+1. ~~**Map tile loading** - Occasionally fails; use Refresh Map button~~ **FIXED v11**
 2. **Large datasets** - Performance may degrade with 1000+ devices
 3. **Concurrent editing** - Last-write-wins (no real-time sync)
 4. **API auto-start** - Flask must be manually started after server reboot
@@ -318,6 +352,26 @@ Parsing state from freeform office names is unreliable. "Chicago Office" can't d
 Parsed MA-1 site names often have inaccurate city/state (e.g., "Atlanta Area (Marietta)" → "Marietta, Atlanta"). Nominatim API returns accurate geocoded data.
 
 **Resolution:** Use Nominatim-provided city/state for display and storage, not parsed values.
+
+### MA-1 "Remote" Keyword (2026-01-19)
+Initially skipped MA-1 sites containing "remote" thinking they were remote workers. In MA-1 context, "remote" means a remote office location, not work-from-home.
+
+**Resolution:** Removed all "remote" keyword detection from MA-1 import.
+
+### MA-1 Data Structure (2026-01-19)
+Initially parsed city/state from Site Name (Row 22) which was unreliable. MA-1 has dedicated rows for City (Row 25) and State (Row 26).
+
+**Resolution:** Read directly from structured City/State rows instead of parsing Site Name.
+
+### Atera MAC Addresses (2026-01-19)
+Atera returns multiple MAC addresses as comma-separated strings that exceeded VARCHAR(17) limit.
+
+**Resolution:** Expanded mac_address column to VARCHAR(500) and added field truncation in API.
+
+### Duplicate Device IPs (2026-01-19)
+Atera can return devices with duplicate IPs (multiple network adapters), causing unique constraint violations.
+
+**Resolution:** Track seen IPs and skip duplicates within same save batch.
 
 ---
 

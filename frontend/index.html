@@ -32,7 +32,7 @@
       background-clip: text;
     }
     
-    .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+    .subtitle { color: #b8c5d6; font-size: 14px; margin-top: 4px; }
     .client-name { color: #22c55e; font-weight: 600; }
     .connection-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; margin-left: 8px; }
     .connection-status.connected { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
@@ -56,7 +56,10 @@
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
     .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
     .btn-success:hover { transform: translateY(-2px); }
-    .btn-secondary { background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .btn-info { background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); }
+    .btn-info:hover { background: rgba(6, 182, 212, 0.25); }
+    #choice-full-mapping:hover, #choice-remote-only:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.05); color: #b8c5d6; border: 1px solid rgba(255, 255, 255, 0.1); }
     .btn-secondary:hover, .btn-secondary.active { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; }
     .btn-warning { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
     .btn-warning:hover { background: rgba(251, 191, 36, 0.25); }
@@ -65,12 +68,41 @@
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
     .btn-sm { padding: 6px 12px; font-size: 11px; }
     
+    /* Tooltips */
+    .btn[data-tooltip] { position: relative; }
+    .btn[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -36px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 400;
+      white-space: nowrap;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .btn[data-tooltip]:hover::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-bottom-color: rgba(0, 0, 0, 0.9);
+      z-index: 100;
+    }
+    
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
     .stat-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
     .stat-card:hover { background: rgba(255, 255, 255, 0.06); transform: translateY(-4px); }
     .stat-card.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
     .stat-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .stat-label { font-size: 11px; color: #b8c5d6; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
     
     .main-content { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
     @media (max-width: 1100px) { .main-content { grid-template-columns: 1fr; } }
@@ -80,47 +112,50 @@
     .map-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     
     .sidebar { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 20px; max-height: 550px; overflow-y: auto; }
-    .sidebar h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 16px; color: #94a3b8; }
+    .sidebar h3 { font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 16px; color: #e2e8f0; }
     
     .location-summary { padding: 16px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; border-left: 4px solid #22c55e; }
     .location-summary:hover { background: rgba(255, 255, 255, 0.06); }
     .location-summary.remote { border-left-color: #f59e0b; }
-    .location-summary.unknown { border-left-color: #94a3b8; }
+    .location-summary.unknown { border-left-color: #b8c5d6; }
     .location-summary h4 { font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
     .location-summary .device-count { background: rgba(255, 255, 255, 0.1); padding: 2px 10px; border-radius: 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
-    .location-summary .subnets { font-size: 12px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    .location-summary .subnets { font-size: 12px; color: #b8c5d6; font-family: 'JetBrains Mono', monospace; }
     
     .device-list { list-style: none; display: none; }
     .device-list.expanded { display: block; }
     .device-item { padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; margin-bottom: 6px; margin-left: 16px; font-size: 12px; border-left: 2px solid rgba(255,255,255,0.1); }
     .device-item:hover { background: rgba(255, 255, 255, 0.05); }
     .device-name { font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .device-meta { font-size: 11px; color: #64748b; }
+    .device-meta { font-size: 11px; color: #b8c5d6; }
     
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 1000; }
     .modal-overlay.active { display: flex; }
     .modal { background: #1e293b; border-radius: 16px; padding: 32px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); }
-    .modal-lg { max-width: 900px; }
+    .modal-lg { max-width: 1200px; }
     .modal h2 { font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
-    .modal p { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+    .modal p { color: #cbd5e1; margin-bottom: 20px; font-size: 14px; }
     .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
     
     .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-group label { display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     input, select, textarea { width: 100%; padding: 12px 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
     input:focus, select:focus { outline: none; border-color: #3b82f6; }
+    select option, select optgroup { background: #1e293b; color: #e2e8f0; }
+    select optgroup { color: #60a5fa; font-weight: 600; font-style: normal; }
+    select option:checked { background: #3b82f6; color: white; }
     
     .location-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px; }
     .location-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
     .location-info h4 { font-size: 14px; margin-bottom: 4px; }
-    .location-info p { font-size: 11px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+    .location-info p { font-size: 11px; color: #b8c5d6; font-family: 'JetBrains Mono', monospace; }
     
     /* Grouped Office Library Styles */
     .office-state-group { border-bottom: 1px solid rgba(255,255,255,0.05); }
     .office-state-group:last-child { border-bottom: none; }
     .office-state-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; background: rgba(255,255,255,0.02); transition: background 0.2s; }
     .office-state-header:hover { background: rgba(255,255,255,0.05); }
-    .office-state-toggle { color: #64748b; font-size: 10px; width: 12px; }
+    .office-state-toggle { color: #b8c5d6; font-size: 10px; width: 12px; }
     .office-state-name { font-weight: 600; color: #e2e8f0; flex: 1; }
     .office-state-count { background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
     .office-state-items { background: rgba(0,0,0,0.15); }
@@ -129,39 +164,43 @@
     .office-item:hover { background: rgba(255,255,255,0.02); }
     .office-item-info { display: flex; flex-direction: column; gap: 2px; }
     .office-item-name { color: #cbd5e1; font-size: 13px; }
-    .office-item-coords { color: #64748b; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
-    .btn-delete-sm { background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+    .office-item-coords { color: #b8c5d6; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+    .btn-delete-sm { background: transparent; border: none; color: #b8c5d6; cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
     .btn-delete-sm:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
     
     .file-drop { border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
     .file-drop:hover, .file-drop.dragover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
     .file-drop-icon { font-size: 48px; margin-bottom: 16px; }
-    .file-drop-text { color: #94a3b8; }
+    .file-drop-text { color: #cbd5e1; }
     
-    .subnet-mapping-row { display: grid; grid-template-columns: 140px 70px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #64748b; }
+    .subnet-mapping-row { display: grid; grid-template-columns: 140px 70px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #b8c5d6; }
     .subnet-mapping-row.mapped { border-left-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
     .subnet-mapping-row .subnet { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
-    .subnet-mapping-row .device-count { font-size: 12px; color: #64748b; }
+    .subnet-mapping-row .device-count { font-size: 12px; color: #b8c5d6; }
     
     .wizard-step { display: none; }
     .wizard-step.active { display: block; }
     .wizard-progress { display: flex; gap: 8px; margin-bottom: 24px; }
-    .wizard-progress-step { flex: 1; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
-    .wizard-progress-step.complete { background: #22c55e; }
-    .wizard-progress-step.current { background: #3b82f6; }
+    .wizard-progress-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .wizard-progress-step .step-bar { width: 100%; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+    .wizard-progress-step.complete .step-bar { background: #22c55e; }
+    .wizard-progress-step.current .step-bar { background: #3b82f6; }
+    .wizard-progress-step .step-label { font-size: 11px; color: #b8c5d6; text-align: center; }
+    .wizard-progress-step.current .step-label { color: #60a5fa; font-weight: 600; }
+    .wizard-progress-step.complete .step-label { color: #22c55e; }
     
-    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #b8c5d6; }
     .empty-state-icon { font-size: 64px; margin-bottom: 16px; }
-    .empty-state h3 { color: #94a3b8; margin-bottom: 8px; }
+    .empty-state h3 { color: #e2e8f0; margin-bottom: 8px; }
     
     .leaflet-popup-content-wrapper { background: #1e293b; color: #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
     .leaflet-popup-content { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin: 12px; }
     .leaflet-popup-tip { background: #1e293b; }
     .popup-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
     .popup-row { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 16px; }
-    .popup-label { color: #64748b; }
+    .popup-label { color: #b8c5d6; }
     .popup-devices { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
-    .popup-device { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+    .popup-device { font-size: 11px; color: #b8c5d6; margin-bottom: 2px; }
     
     .add-office-box { padding: 16px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; margin-top: 16px; }
     .add-office-box h4 { margin-bottom: 12px; font-size: 14px; }
@@ -173,7 +212,7 @@
     .city-result:hover { background: rgba(59, 130, 246, 0.2); }
     .city-result:last-child { border-bottom: none; }
     .city-result-name { font-weight: 600; margin-bottom: 2px; }
-    .city-result-detail { font-size: 11px; color: #64748b; }
+    .city-result-detail { font-size: 11px; color: #b8c5d6; }
     .city-result.online-search { background: rgba(251, 191, 36, 0.1); border-left: 3px solid #fbbf24; }
     .city-result.manual-entry { background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; }
     
@@ -181,7 +220,7 @@
     .coords-display.active { display: block; }
     
     .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-    .tab { padding: 8px 16px; background: rgba(255,255,255,0.05); border: none; color: #64748b; cursor: pointer; border-radius: 6px; font-size: 12px; transition: all 0.2s; }
+    .tab { padding: 8px 16px; background: rgba(255,255,255,0.05); border: none; color: #b8c5d6; cursor: pointer; border-radius: 6px; font-size: 12px; transition: all 0.2s; }
     .tab.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
     .tab:hover { color: #e2e8f0; }
     
@@ -190,21 +229,21 @@
     .client-item:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
     .client-item.selected { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
     .client-item-name { font-weight: 600; }
-    .client-item-meta { font-size: 11px; color: #64748b; }
+    .client-item-meta { font-size: 11px; color: #b8c5d6; }
     .client-item-actions { display: flex; gap: 8px; }
     
     .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; flex-direction: column; gap: 16px; }
     .loading-overlay.active { display: flex; }
     .loading-spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #94a3b8; font-size: 14px; }
+    .loading-text { color: #b8c5d6; font-size: 14px; }
     
     .delta-summary { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px; margin: 16px 0; }
     .delta-summary h4 { color: #fbbf24; margin-bottom: 12px; }
     .delta-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
     .delta-add { color: #22c55e; }
     .delta-remove { color: #ef4444; }
-    .delta-keep { color: #64748b; }
+    .delta-keep { color: #b8c5d6; }
   </style>
 </head>
 <body>
@@ -223,22 +262,39 @@
         </p>
       </div>
       <div class="btn-group">
-        <button class="btn btn-primary" onclick="openModal('loadClientModal')">📂 Load Client</button>
-        <button class="btn btn-warning" onclick="newClient()">🆕 New Client</button>
-        <button class="btn btn-success" onclick="saveClient()" id="btn-save" disabled>💾 Save Client</button>
-        <button class="btn btn-secondary" onclick="openModal('officeLibraryModal')">🏢 Office Library</button>
-        <button class="btn btn-secondary" onclick="exportData()" id="btn-export" disabled>📤 Export CSV</button>
+        <button class="btn btn-primary" onclick="openModal('loadClientModal')" data-tooltip="Open a previously saved client">📂 Load Client</button>
+        <button class="btn btn-warning" onclick="newClient()" data-tooltip="Import devices from Excel or Atera">🆕 New Client</button>
+        <button class="btn btn-info" onclick="openUpdateClientModal()" id="btn-update" disabled data-tooltip="Refresh device data for current client">🔄 Update Client</button>
+        <button class="btn btn-success" onclick="saveClient()" id="btn-save" disabled data-tooltip="Save current client to database">💾 Save Client</button>
+        <button class="btn btn-secondary" onclick="openModal('officeLibraryModal')" data-tooltip="Manage shared office locations">🏢 Office Library</button>
+        <button class="btn btn-secondary" onclick="exportData()" id="btn-export" disabled data-tooltip="Download summary as CSV">📤 Export CSV</button>
       </div>
     </header>
     
     <div id="empty-state" class="empty-state">
-      <div class="empty-state-icon">📁</div>
-      <h3>No Client Data Loaded</h3>
-      <p>Load an existing client or create a new one to begin.</p>
-      <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
-        <button class="btn btn-primary" onclick="openModal('loadClientModal')">📂 Load Existing Client</button>
-        <button class="btn btn-warning" onclick="newClient()">🆕 New Client</button>
+      <img src="hub-logo-primary.png" alt="HUB International" style="height: 50px; margin-bottom: 24px;">
+      <h3>Network Device Geolocation Mapper</h3>
+      <p style="max-width: 520px; margin: 0 auto 24px; line-height: 1.6;">
+        Identify which agency devices are located in office locations versus employee home addresses, 
+        allowing you to exclude remote workers from network security scans.
+      </p>
+      <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; max-width: 400px; margin: 0 auto 24px;">
+        <div style="font-size: 13px; color: #b8c5d6; text-align: left;">
+          <div style="margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px;">
+            <span style="color: #60a5fa;">1.</span>
+            <span><strong style="color: #e2e8f0;">Import Devices</strong> — Load device IPs from Excel or Atera</span>
+          </div>
+          <div style="margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px;">
+            <span style="color: #60a5fa;">2.</span>
+            <span><strong style="color: #e2e8f0;">Map Subnets</strong> — Assign IP ranges to office locations</span>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="color: #60a5fa;">3.</span>
+            <span><strong style="color: #e2e8f0;">Classify</strong> — Identify office vs. remote devices for scan targeting</span>
+          </div>
+        </div>
       </div>
+      <p style="font-size: 13px; color: #b8c5d6;">Use the buttons above to get started.</p>
     </div>
     
     <div id="main-app" style="display: none;">
@@ -256,7 +312,7 @@
           <div class="stat-label">Remote/Home</div>
         </div>
         <div class="stat-card" onclick="filterDevices('unknown', this)">
-          <div class="stat-value" id="stat-unknown" style="color: #94a3b8;">0</div>
+          <div class="stat-value" id="stat-unknown" style="color: #b8c5d6;">0</div>
           <div class="stat-label">Unmapped</div>
         </div>
         <div class="stat-card">
@@ -290,7 +346,7 @@
       <p>Select a client to load their saved subnet mappings and devices.</p>
       
       <div class="client-list" id="client-list">
-        <div style="text-align: center; padding: 20px; color: #64748b;">Loading clients...</div>
+        <div style="text-align: center; padding: 20px; color: #b8c5d6;">Loading clients...</div>
       </div>
       
       <div class="modal-actions">
@@ -304,27 +360,53 @@
   <div class="modal-overlay" id="importModal">
     <div class="modal modal-lg">
       <div class="wizard-progress">
-        <div class="wizard-progress-step current" id="progress-1"></div>
-        <div class="wizard-progress-step" id="progress-2"></div>
-        <div class="wizard-progress-step" id="progress-3"></div>
+        <div class="wizard-progress-step current" id="progress-1">
+          <div class="step-bar"></div>
+          <div class="step-label">1. Import Data</div>
+        </div>
+        <div class="wizard-progress-step" id="progress-2">
+          <div class="step-bar"></div>
+          <div class="step-label">2. Map Subnets</div>
+        </div>
+        <div class="wizard-progress-step" id="progress-3">
+          <div class="step-bar"></div>
+          <div class="step-label">3. Complete</div>
+        </div>
       </div>
       
       <div class="wizard-step active" id="wizard-step-1">
         <h2>📥 Step 1: Client & Data Import</h2>
-        <p>Enter a client name and choose your data source.</p>
         
-        <!-- MA-1 Import Reminder -->
-        <div id="ma1-reminder" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 20px;">💡</span>
-            <div>
-              <div style="color: #fbbf24; font-weight: 600; font-size: 13px;">Have office locations ready?</div>
-              <div style="font-size: 12px; color: #94a3b8;">Import from MA-1 first for faster mapping</div>
-            </div>
+        <!-- Two-path workflow explanation -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+          
+          <!-- Recommended Path -->
+          <div style="background: rgba(34, 197, 94, 0.1); border: 2px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 16px; position: relative;">
+            <div style="position: absolute; top: -10px; left: 12px; background: #1e293b; padding: 0 8px; font-size: 11px; color: #22c55e; font-weight: 600;">✓ RECOMMENDED</div>
+            <div style="font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px;">First time with this client?</div>
+            <div style="font-size: 13px; color: #b8c5d6; margin-bottom: 12px;">Import office locations from the MA-1 first. This pre-loads all addresses so mapping is fast and accurate.</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px; font-style: italic;">Skip this if you only need a quick list of remote workers.</div>
+            <button class="btn btn-success" onclick="openMA1ImportFromWizard()" style="width: 100%; padding: 10px;">
+              📋 Import MA-1 First
+            </button>
           </div>
-          <button class="btn btn-secondary" onclick="closeModal('importModal'); openModal('officeLibraryModal');" style="white-space: nowrap; font-size: 12px; padding: 8px 12px;">
-            📋 Import MA-1
-          </button>
+          
+          <!-- Skip Path -->
+          <div style="background: rgba(100, 116, 139, 0.1); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 12px; padding: 16px; position: relative;">
+            <div style="position: absolute; top: -10px; left: 12px; background: #1e293b; padding: 0 8px; font-size: 11px; color: #b8c5d6; font-weight: 600;">ALTERNATIVE</div>
+            <div style="font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px;">Offices already in library?</div>
+            <div style="font-size: 13px; color: #b8c5d6; margin-bottom: 12px;">If you've already imported locations, prefer to add them manually, or just need a quick remote worker list.</div>
+            <button class="btn btn-secondary" onclick="document.getElementById('client-name').focus();" style="width: 100%; padding: 10px;">
+              Continue to Device Import ↓
+            </button>
+          </div>
+        </div>
+        
+        <!-- Divider -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+          <span style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Device Import</span>
+          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
         </div>
         
         <div class="form-group">
@@ -334,15 +416,15 @@
         
         <!-- Import Source Selection -->
         <div class="import-source-tabs" style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <button class="btn btn-secondary" id="source-atera-btn" onclick="selectImportSource('atera')" style="flex: 1; padding: 16px;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🔗</div>
+            <div>Atera Extract</div>
+            <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">Pull live device data</div>
+          </button>
           <button class="btn btn-secondary active" id="source-excel-btn" onclick="selectImportSource('excel')" style="flex: 1; padding: 16px;">
             <div style="font-size: 24px; margin-bottom: 4px;">📄</div>
             <div>Excel File</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Upload .xlsx from discovery</div>
-          </button>
-          <button class="btn btn-secondary" id="source-atera-btn" onclick="selectImportSource('atera')" style="flex: 1; padding: 16px;">
-            <div style="font-size: 24px; margin-bottom: 4px;">🔗</div>
-            <div>Atera API</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Pull live device data</div>
+            <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">Upload .xlsx from discovery</div>
           </button>
         </div>
         
@@ -350,15 +432,36 @@
         <div id="excel-import-section">
           <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
             <div class="file-drop-icon">📁</div>
-            <div class="file-drop-text"><strong>Click to select</strong> or drag & drop Excel file<br><small>Supports .xlsx files</small></div>
+            <div class="file-drop-text"><strong>Click to select</strong> or drag & drop<br><small>Atera Network Discovery export (.xlsx)</small></div>
           </div>
           <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+          
+          <!-- Help: How to get the Excel file -->
+          <div style="margin-top: 12px;">
+            <span onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'; this.querySelector('.help-arrow').textContent = this.nextElementSibling.style.display === 'none' ? '▶' : '▼';" 
+                  style="font-size: 13px; color: #60a5fa; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              <span class="help-arrow">▶</span> How do I get the Excel file from Atera?
+            </span>
+            <div style="display: none; margin-top: 12px; padding: 16px; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px;">
+              <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 12px;"><strong>In most cases the most accurate and up to date data can be obtained with the Atera Extract button. But in the event your agency is not accessible through that option, follow these instructions:</strong></div>
+              <div style="font-size: 13px; color: #e2e8f0; margin-bottom: 12px; font-weight: 600;">Export from Atera Network Discovery:</div>
+              <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #b8c5d6; line-height: 1.8;">
+                <li>In Atera, click <strong style="color: #e2e8f0;">Network Discovery</strong> in the left navigation pane</li>
+                <li>Select the <strong style="color: #e2e8f0;">customer</strong> you want to export</li>
+                <li>Make sure you're on the <strong style="color: #e2e8f0;">Devices</strong> tab</li>
+                <li>Click the <strong style="color: #e2e8f0;">Export XLS</strong> button in the top right corner</li>
+              </ol>
+              <div style="margin-top: 12px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; font-size: 12px; color: #22c55e;">
+                ✓ The exported file can be imported directly — no modifications needed.
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- Atera Import Section -->
         <div id="atera-import-section" style="display: none;">
           <div id="atera-status-box" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; text-align: center;">
-            <div style="color: #64748b;">Checking Atera connection...</div>
+            <div style="color: #b8c5d6;">Checking Atera connection...</div>
           </div>
           <div id="atera-customer-select" style="display: none; margin-top: 16px;">
             <div class="form-group">
@@ -387,53 +490,112 @@
       
       <div class="wizard-step" id="wizard-step-2">
         <h2>🗺️ Step 2: Map Subnets to Locations</h2>
-        <p>Assign each detected subnet to an office location.</p>
-        <div id="subnet-mapping-list"></div>
-        <div class="add-office-box">
-          <h4>➕ Add New Office Location</h4>
-          <div class="tabs" style="flex-wrap: wrap;">
-            <button class="tab active" onclick="switchAddMode('search', 'quick')">🔍 Search City</button>
-            <button class="tab" onclick="switchAddMode('manual', 'quick')">✏️ Manual Entry</button>
-            <button class="tab" onclick="openMA1ImportFromWizard()" style="background: rgba(96, 165, 250, 0.2); border-color: rgba(96, 165, 250, 0.3);">📋 Import MA-1</button>
-          </div>
-          <div id="quick-search-mode">
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label>Search City</label>
-              <div class="city-search-container">
-                <input type="text" id="quick-city-search" placeholder="Type city name (e.g., Dallas, TX)..." oninput="handleCitySearch(this.value, 'quick')">
-                <div class="city-search-results" id="quick-search-results"></div>
+        
+        <!-- Quick Choice Section -->
+        <div id="step2-choice" style="margin-bottom: 24px;">
+          <p style="color: #b8c5d6; margin-bottom: 16px;">How would you like to proceed?</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <!-- Full Mapping Option -->
+            <div id="choice-full-mapping" onclick="selectStep2Mode('full')" style="background: rgba(34, 197, 94, 0.1); border: 2px solid rgba(34, 197, 94, 0.4); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s;">
+              <div style="font-size: 24px; margin-bottom: 8px;">🗺️</div>
+              <div style="font-weight: 600; color: #22c55e; margin-bottom: 8px;">Full Company Mapping</div>
+              <div style="font-size: 12px; color: #b8c5d6; line-height: 1.5;">
+                Map all devices to office locations. Creates a complete picture of where devices are located company-wide.
+              </div>
+              <div style="font-size: 11px; color: #60a5fa; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                ✓ Recommended for team-wide visibility
+              </div>
+            </div>
+            
+            <!-- Quick Remote List Option -->
+            <div id="choice-remote-only" onclick="selectStep2Mode('remote')" style="background: rgba(251, 191, 36, 0.1); border: 2px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s;">
+              <div style="font-size: 24px; margin-bottom: 8px;">🏠</div>
+              <div style="font-weight: 600; color: #fbbf24; margin-bottom: 8px;">Quick Remote List Only</div>
+              <div style="font-size: 12px; color: #b8c5d6; line-height: 1.5;">
+                Skip office mapping and get a list of remote workers only. Fastest way to exclude home addresses from network scans.
+              </div>
+              <div style="font-size: 11px; color: #b8c5d6; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                ⚡ Fastest option for security scans
               </div>
             </div>
           </div>
-          <div id="quick-manual-mode" style="display: none;">
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label>City / Location Name</label>
-              <input type="text" id="quick-manual-city" placeholder="e.g., Smalltown, TX">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="form-group" style="margin: 0;">
-                <label>Latitude</label>
-                <input type="text" id="quick-manual-lat" placeholder="e.g., 32.7767">
-              </div>
-              <div class="form-group" style="margin: 0;">
-                <label>Longitude</label>
-                <input type="text" id="quick-manual-lng" placeholder="e.g., -96.7970">
-              </div>
-            </div>
-            <p style="font-size: 11px; color: #64748b; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
-          </div>
-          <div class="coords-display" id="quick-coords-display"></div>
-          <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; align-items: end;">
-            <div class="form-group" style="margin: 0;">
-              <label>Office Name</label>
-              <input type="text" id="quick-office-name" placeholder="e.g., Dallas Office">
-            </div>
-            <button class="btn btn-primary" onclick="quickAddOffice()" id="btn-quick-add">+ Add</button>
+          
+          <div style="background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.2); border-radius: 8px; padding: 12px; margin-top: 16px; font-size: 12px; color: #94a3b8;">
+            <strong style="color: #60a5fa;">💡 Consider Full Mapping:</strong> The complete mapping data has value beyond just your immediate need. Other team members may benefit from knowing all office locations, and it provides a more accurate picture of the client's network topology.
           </div>
         </div>
-        <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="wizardBack(2)">← Back</button>
-          <button class="btn btn-success" onclick="wizardNext(2)">Finish & View Map →</button>
+        
+        <!-- Full Mapping Section (hidden until user chooses) -->
+        <div id="step2-full-mapping" style="display: none;">
+          <div id="subnet-mapping-list"></div>
+          <div class="add-office-box">
+            <h4>➕ Add New Office Location</h4>
+            <div class="tabs" style="flex-wrap: wrap;">
+              <button class="tab active" onclick="switchAddMode('search', 'quick')">🔍 Search City</button>
+              <button class="tab" onclick="switchAddMode('manual', 'quick')">✏️ Manual Entry</button>
+              <button class="tab" onclick="openMA1ImportFromWizard()" style="background: rgba(96, 165, 250, 0.2); border-color: rgba(96, 165, 250, 0.3);">📋 Import MA-1</button>
+            </div>
+            <div id="quick-search-mode">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label>Search City</label>
+                <div class="city-search-container">
+                  <input type="text" id="quick-city-search" placeholder="Type city name (e.g., Dallas, TX)..." oninput="handleCitySearch(this.value, 'quick')">
+                  <div class="city-search-results" id="quick-search-results"></div>
+                </div>
+                <div style="margin-top: 6px;">
+                  <span onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" style="font-size: 12px; color: #60a5fa; cursor: pointer;">Can't find a city? ▼</span>
+                  <div style="display: none; font-size: 12px; color: #b8c5d6; margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                    Try typing the city name followed by the province (e.g., "Calgary, Alberta") or just ", Canada" and the search will locate it for you.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="quick-manual-mode" style="display: none;">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label>City / Location Name</label>
+                <input type="text" id="quick-manual-city" placeholder="e.g., Smalltown, TX">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group" style="margin: 0;">
+                  <label>Latitude</label>
+                  <input type="text" id="quick-manual-lat" placeholder="e.g., 32.7767">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label>Longitude</label>
+                  <input type="text" id="quick-manual-lng" placeholder="e.g., -96.7970">
+                </div>
+              </div>
+              <p style="font-size: 11px; color: #b8c5d6; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
+            </div>
+            <div class="coords-display" id="quick-coords-display"></div>
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; align-items: end;">
+              <div class="form-group" style="margin: 0;">
+                <label>Office Name</label>
+                <input type="text" id="quick-office-name" placeholder="e.g., Dallas Office">
+              </div>
+              <button class="btn btn-primary" onclick="quickAddOffice()" id="btn-quick-add">+ Add</button>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="wizardBack(2)">← Back</button>
+            <button class="btn btn-success" onclick="wizardNext(2)">Finish & View Map →</button>
+          </div>
+        </div>
+        
+        <!-- Remote Only Section (hidden by default) -->
+        <div id="step2-remote-only" style="display: none;">
+          <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h4 style="color: #fbbf24; margin-bottom: 12px;">🏠 Remote Workers</h4>
+            <div id="remote-only-summary" style="color: #b8c5d6; font-size: 14px;"></div>
+          </div>
+          
+          <div id="remote-only-list" style="max-height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px;"></div>
+          
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="selectStep2Mode('full')">← Switch to Full Mapping</button>
+            <button class="btn btn-warning" onclick="finishRemoteOnly()">View Remote List →</button>
+          </div>
         </div>
       </div>
       
@@ -470,7 +632,7 @@
       <div style="background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
         <div>
           <div style="color: #60a5fa; font-weight: 600;">📋 Import from MA-1</div>
-          <div style="font-size: 12px; color: #94a3b8;">Bulk import office locations from DD-General tab</div>
+          <div style="font-size: 12px; color: #b8c5d6;">Bulk import office locations from DD-General tab</div>
         </div>
         <button class="btn btn-primary" onclick="openMA1Import()" style="white-space: nowrap;">Import MA-1</button>
       </div>
@@ -489,6 +651,12 @@
             <input type="text" id="library-city-search" placeholder="Type city name..." oninput="handleCitySearch(this.value, 'library')">
             <div class="city-search-results" id="library-search-results"></div>
           </div>
+          <div style="margin-top: 6px;">
+            <span onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" style="font-size: 12px; color: #60a5fa; cursor: pointer;">Can't find a city? ▼</span>
+            <div style="display: none; font-size: 12px; color: #b8c5d6; margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+              Try typing the city name followed by the province (e.g., "Calgary, Alberta") or just ", Canada" and the search will locate it for you.
+            </div>
+          </div>
         </div>
       </div>
       <div id="library-manual-mode" style="display: none;">
@@ -506,7 +674,7 @@
             <input type="text" id="library-manual-lng" placeholder="e.g., -96.7970">
           </div>
         </div>
-        <p style="font-size: 11px; color: #64748b; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
+        <p style="font-size: 11px; color: #b8c5d6; margin-top: 8px;">💡 Get coordinates from Google Maps: right-click any location → copy coordinates</p>
       </div>
       <div class="coords-display" id="library-coords-display"></div>
       <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 12px; align-items: end;">
@@ -537,6 +705,11 @@
         </div>
         <input type="file" id="ma1-file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleMA1FileSelect(event)">
         
+        <!-- Cancel button always visible before file is loaded -->
+        <div id="ma1-initial-actions" class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeModal('ma1ImportModal')">Cancel</button>
+        </div>
+        
         <div id="ma1-file-info" style="display: none; background: rgba(34, 197, 94, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
           <div style="color: #22c55e; font-weight: 600;">✓ File loaded: <span id="ma1-filename"></span></div>
         </div>
@@ -547,7 +720,7 @@
               <input type="checkbox" id="ma1-confirm-checkbox" style="margin-top: 4px; width: 18px; height: 18px;">
               <div>
                 <div style="color: #fbbf24; font-weight: 600;">⚠️ Confirmation Required</div>
-                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+                <div style="font-size: 13px; color: #b8c5d6; margin-top: 4px;">
                   I confirm that the MA-1 site information on the DD-General tab is complete and accurate for this client.
                 </div>
               </div>
@@ -567,9 +740,9 @@
         
         <div id="ma1-sites-list" style="max-height: 400px; overflow-y: auto;"></div>
         
-        <div class="modal-actions" style="margin-top: 20px;">
+        <div class="modal-actions" style="margin-top: 20px;" id="ma1-step-2-actions">
           <button class="btn btn-secondary" onclick="ma1Back()">← Back</button>
-          <button class="btn btn-success" onclick="ma1AddSelected()">Add Selected Offices</button>
+          <button class="btn btn-success" id="ma1-add-btn" onclick="ma1AddSelected()">Add Selected Offices</button>
         </div>
       </div>
       
@@ -578,7 +751,7 @@
         <div style="text-align: center; padding: 30px;">
           <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
           <h3 style="color: #22c55e; margin-bottom: 8px;">Import Complete!</h3>
-          <p id="ma1-complete-message" style="color: #94a3b8;"></p>
+          <p id="ma1-complete-message" style="color: #b8c5d6;"></p>
         </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="closeMA1AndRefresh()">Done</button>
@@ -595,6 +768,92 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancel</button>
         <button class="btn btn-danger" onclick="confirmDeleteClient()">Delete Client</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Update Client Modal -->
+  <div class="modal-overlay" id="updateClientModal">
+    <div class="modal" style="max-width: 950px;">
+      <h2>🔄 Update Client Data</h2>
+      
+      <!-- Current Client Info -->
+      <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13px; color: #06b6d4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Updating</div>
+            <div style="font-size: 18px; font-weight: 600; color: #e2e8f0;" id="update-client-name">Client Name</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 24px; font-weight: 700; color: #06b6d4;" id="update-current-count">0</div>
+            <div style="font-size: 12px; color: #b8c5d6;">current devices</div>
+          </div>
+        </div>
+      </div>
+      
+      <p style="color: #b8c5d6; margin-bottom: 16px;">Import updated device data. New devices will be added, removed devices will be deleted, and existing devices will be updated.</p>
+      
+      <!-- Import Source Selection -->
+      <div class="import-source-tabs" style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <button class="btn btn-secondary" id="update-source-atera-btn" onclick="selectUpdateSource('atera')" style="flex: 1; padding: 16px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">🔗</div>
+          <div>Atera Extract</div>
+          <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">Pull latest device data</div>
+        </button>
+        <button class="btn btn-secondary active" id="update-source-excel-btn" onclick="selectUpdateSource('excel')" style="flex: 1; padding: 16px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">📄</div>
+          <div>Excel File</div>
+          <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">Upload new .xlsx export</div>
+        </button>
+      </div>
+      
+      <!-- Excel Import Section -->
+      <div id="update-excel-section">
+        <div class="file-drop" id="update-file-drop" onclick="document.getElementById('update-file-input').click()">
+          <div class="file-drop-icon">📁</div>
+          <div class="file-drop-text"><strong>Click to select</strong> or drag & drop<br><small>Atera Network Discovery export (.xlsx)</small></div>
+        </div>
+        <input type="file" id="update-file-input" accept=".xlsx,.xls" style="display: none;" onchange="handleUpdateFileSelect(event)">
+      </div>
+      
+      <!-- Atera Import Section -->
+      <div id="update-atera-section" style="display: none;">
+        <div id="update-atera-status" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; text-align: center;">
+          <div style="color: #b8c5d6;">Checking Atera connection...</div>
+        </div>
+        <div id="update-atera-ready" style="display: none; margin-top: 16px;">
+          <button class="btn btn-primary" id="btn-update-fetch-atera" onclick="fetchUpdateFromAtera()" style="width: 100%;">
+            🔄 Fetch Latest Devices from Atera
+          </button>
+        </div>
+      </div>
+      
+      <!-- Delta Preview -->
+      <div id="update-delta-preview" style="display: none; margin-top: 20px;">
+        <div style="font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 12px;">Changes Detected</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #22c55e;" id="update-new-count">0</div>
+            <div style="font-size: 12px; color: #b8c5d6;">New devices</div>
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #ef4444;" id="update-removed-count">0</div>
+            <div style="font-size: 12px; color: #b8c5d6;">Removed</div>
+          </div>
+          <div style="background: rgba(100, 116, 139, 0.1); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #b8c5d6;" id="update-unchanged-count">0</div>
+            <div style="font-size: 12px; color: #b8c5d6;">Unchanged</div>
+          </div>
+        </div>
+        <div id="update-new-subnets" style="display: none; margin-top: 12px; padding: 12px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px;">
+          <div style="font-size: 12px; color: #fbbf24; font-weight: 600;">⚠️ New Subnets Detected</div>
+          <div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;" id="update-new-subnets-list"></div>
+        </div>
+      </div>
+      
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
+        <button class="btn btn-info" id="btn-apply-update" onclick="applyClientUpdate()" disabled>Apply Update</button>
       </div>
     </div>
   </div>
@@ -665,6 +924,7 @@
     let isConnected = false;
     let existingDeviceIPs = new Set();
     let isUpdatingClient = false;
+    let sessionSuggestedOffices = []; // Offices added via MA-1 in current session
     
     // Atera state
     let importSource = 'excel'; // 'excel' or 'atera'
@@ -742,8 +1002,12 @@
     // Map Setup
     // ============================================
     const map = L.map('map').setView([39.8283, -98.5795], 4);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+    const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
     let markers = L.layerGroup().addTo(map);
+    
+    // Fix map when tiles start loading
+    tileLayer.on('loading', () => { setTimeout(() => map.invalidateSize(), 50); });
+    tileLayer.on('load', () => { map.invalidateSize(); });
     
     function refreshMap() {
       map.invalidateSize();
@@ -887,6 +1151,7 @@
       document.getElementById('client-display').textContent = 'No client loaded';
       document.getElementById('btn-save').disabled = true;
       document.getElementById('btn-export').disabled = true;
+      document.getElementById('btn-update').disabled = true;
       markers.clearLayers();
     }
     
@@ -933,6 +1198,301 @@
     }
     
     // ============================================
+    // Update Client
+    // ============================================
+    let updateSource = 'excel';
+    let updatePendingDevices = [];
+    let updateAteraAnalysis = null;
+    
+    function openUpdateClientModal() {
+      if (!clientName) {
+        alert('No client loaded');
+        return;
+      }
+      
+      // Reset state
+      updateSource = 'excel';
+      updatePendingDevices = [];
+      updateAteraAnalysis = null;
+      
+      // Set current client info
+      document.getElementById('update-client-name').textContent = clientName;
+      document.getElementById('update-current-count').textContent = devices.length;
+      
+      // Reset UI
+      document.getElementById('update-excel-section').style.display = 'block';
+      document.getElementById('update-atera-section').style.display = 'none';
+      document.getElementById('update-source-excel-btn').classList.add('active');
+      document.getElementById('update-source-atera-btn').classList.remove('active');
+      document.getElementById('update-delta-preview').style.display = 'none';
+      document.getElementById('btn-apply-update').disabled = true;
+      document.getElementById('update-file-drop').innerHTML = `
+        <div class="file-drop-icon">📁</div>
+        <div class="file-drop-text"><strong>Click to select</strong> or drag & drop<br><small>Atera Network Discovery export (.xlsx)</small></div>
+      `;
+      
+      openModal('updateClientModal');
+      
+      // Check Atera status in background
+      checkUpdateAteraStatus();
+    }
+    
+    function closeUpdateModal() {
+      closeModal('updateClientModal');
+      updatePendingDevices = [];
+      updateAteraAnalysis = null;
+    }
+    
+    function selectUpdateSource(source) {
+      updateSource = source;
+      document.getElementById('update-source-excel-btn').classList.toggle('active', source === 'excel');
+      document.getElementById('update-source-atera-btn').classList.toggle('active', source === 'atera');
+      document.getElementById('update-excel-section').style.display = source === 'excel' ? 'block' : 'none';
+      document.getElementById('update-atera-section').style.display = source === 'atera' ? 'block' : 'none';
+      
+      // Reset preview when switching sources
+      document.getElementById('update-delta-preview').style.display = 'none';
+      document.getElementById('btn-apply-update').disabled = true;
+      updatePendingDevices = [];
+    }
+    
+    async function checkUpdateAteraStatus() {
+      try {
+        const status = await apiGet('/atera/status');
+        if (status.configured && status.connected) {
+          document.getElementById('update-atera-status').innerHTML = `
+            <div style="color: #22c55e;">✓ Connected to Atera</div>
+          `;
+          document.getElementById('update-atera-ready').style.display = 'block';
+        } else {
+          document.getElementById('update-atera-status').innerHTML = `
+            <div style="color: #ef4444;">Atera not configured or not connected</div>
+          `;
+          document.getElementById('update-atera-ready').style.display = 'none';
+        }
+      } catch (e) {
+        document.getElementById('update-atera-status').innerHTML = `
+          <div style="color: #ef4444;">Could not check Atera status</div>
+        `;
+      }
+    }
+    
+    function handleUpdateFileSelect(e) {
+      if (e.target.files[0]) processUpdateFile(e.target.files[0]);
+    }
+    
+    function processUpdateFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          updatePendingDevices = [];
+          
+          wb.SheetNames.forEach(sheet => {
+            XLSX.utils.sheet_to_json(wb.Sheets[sheet]).forEach((row, idx) => {
+              const d = {
+                id: `${sheet}-${idx}-${Date.now()}`,
+                name: row['Device name'] || row['Name'] || row['Hostname'] || `Device-${idx}`,
+                ip: row['IP address'] || row['IP'] || '',
+                mac: row['Mac address'] || row['MAC'] || '',
+                type: row['Device type'] || row['Type'] || sheet,
+                manufacturer: row['Manufacturer'] || '',
+                os: row['OS platform'] || ''
+              };
+              if (d.ip) updatePendingDevices.push(d);
+            });
+          });
+          
+          document.getElementById('update-file-drop').innerHTML = `
+            <div style="color: #22c55e; font-size: 16px;">✓ ${file.name}</div>
+            <div style="font-size: 13px; color: #b8c5d6; margin-top: 4px;">Found ${updatePendingDevices.length} devices</div>
+          `;
+          
+          showUpdateDelta();
+          
+        } catch (err) {
+          alert('Error processing file: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    async function fetchUpdateFromAtera() {
+      const btn = document.getElementById('btn-update-fetch-atera');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Fetching...';
+      
+      try {
+        let customerId = selectedAteraCustomerId;
+        
+        // If we don't have a stored Atera ID, try to match by name
+        if (!customerId) {
+          const customers = await apiGet('/atera/customers');
+          const match = customers.find(c => c.name.toLowerCase() === clientName.toLowerCase());
+          
+          if (!match) {
+            alert(`Could not find Atera customer matching "${clientName}". Please use Excel import instead.`);
+            btn.disabled = false;
+            btn.innerHTML = '🔄 Fetch Latest Devices from Atera';
+            return;
+          }
+          customerId = match.id;
+          selectedAteraCustomerId = match.id;
+        }
+        
+        const result = await apiGet(`/atera/customers/${customerId}/devices`);
+        
+        updateAteraAnalysis = result.analysis;
+        updatePendingDevices = result.devices.map(d => ({
+          id: d.id,
+          name: d.name,
+          ip: d.ip,
+          mac: d.mac || '',
+          type: d.type || 'Workstation',
+          manufacturer: d.manufacturer || '',
+          os: d.os || '',
+          location_type: d.location_type,
+          reported_from_ip: d.reported_from_ip
+        }));
+        
+        btn.innerHTML = `✓ Loaded ${updatePendingDevices.length} devices`;
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = '🔄 Fetch Latest Devices from Atera';
+        }, 2000);
+        
+        showUpdateDelta();
+        
+      } catch (err) {
+        alert('Error fetching from Atera: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Fetch Latest Devices from Atera';
+      }
+    }
+    
+    function showUpdateDelta() {
+      // Compare current devices with pending devices
+      const currentIPs = new Set(devices.map(d => d.ip));
+      const pendingIPs = new Set(updatePendingDevices.map(d => d.ip));
+      
+      const newDevices = updatePendingDevices.filter(d => !currentIPs.has(d.ip));
+      const removedDevices = devices.filter(d => !pendingIPs.has(d.ip));
+      const unchangedDevices = updatePendingDevices.filter(d => currentIPs.has(d.ip));
+      
+      document.getElementById('update-new-count').textContent = newDevices.length;
+      document.getElementById('update-removed-count').textContent = removedDevices.length;
+      document.getElementById('update-unchanged-count').textContent = unchangedDevices.length;
+      
+      // Check for new subnets
+      const currentSubnets = new Set(devices.map(d => getSubnetFromIP(d.ip)));
+      const newSubnets = new Set();
+      newDevices.forEach(d => {
+        const subnet = getSubnetFromIP(d.ip);
+        if (!currentSubnets.has(subnet)) {
+          newSubnets.add(subnet);
+        }
+      });
+      
+      if (newSubnets.size > 0) {
+        document.getElementById('update-new-subnets').style.display = 'block';
+        document.getElementById('update-new-subnets-list').textContent = 
+          `New subnets: ${[...newSubnets].map(s => s + '.*').join(', ')}. You may need to map these after updating.`;
+      } else {
+        document.getElementById('update-new-subnets').style.display = 'none';
+      }
+      
+      document.getElementById('update-delta-preview').style.display = 'block';
+      document.getElementById('btn-apply-update').disabled = false;
+    }
+    
+    async function applyClientUpdate() {
+      if (updatePendingDevices.length === 0) {
+        alert('No devices to update');
+        return;
+      }
+      
+      // Check for new subnets that need mapping
+      const currentSubnets = new Set(detectedSubnets.map(s => s.subnet));
+      const newSubnets = new Set();
+      updatePendingDevices.forEach(d => {
+        const subnet = getSubnetFromIP(d.ip);
+        if (!currentSubnets.has(subnet) && isPrivateIP(d.ip)) {
+          newSubnets.add(subnet);
+        }
+      });
+      
+      showLoading('Updating devices...');
+      
+      try {
+        // Replace devices array with new data
+        devices = updatePendingDevices.map(d => ({ ...d }));
+        
+        // Update detected subnets
+        const subnetCounts = {};
+        devices.forEach(d => {
+          if (d.ip && isPrivateIP(d.ip)) {
+            const subnet = getSubnetFromIP(d.ip);
+            subnetCounts[subnet] = (subnetCounts[subnet] || 0) + 1;
+          }
+        });
+        detectedSubnets = Object.entries(subnetCounts)
+          .map(([subnet, count]) => ({ subnet, count }))
+          .sort((a, b) => b.count - a.count);
+        
+        // Re-classify devices with existing mappings
+        devices = devices.map(d => ({ ...d, ...classifyDevice(d.ip) }));
+        
+        // Handle Atera location types if available
+        if (updateAteraAnalysis) {
+          devices = devices.map(d => {
+            const original = updatePendingDevices.find(p => p.ip === d.ip);
+            if (original?.location_type === 'remote' && original?.reported_from_ip) {
+              // Will be geolocated later
+              return { ...d, location_type: 'remote', reported_from_ip: original.reported_from_ip };
+            }
+            return d;
+          });
+        }
+        
+        hideLoading();
+        closeUpdateModal();
+        
+        // Update UI
+        renderAll();
+        
+        // Notify user
+        const hasNewSubnets = newSubnets.size > 0;
+        let message = `Updated to ${devices.length} devices.`;
+        if (hasNewSubnets) {
+          message += ` ${newSubnets.size} new subnet(s) detected - click "Edit Mappings" to assign them.`;
+        }
+        message += '\n\nRemember to click "Save Client" to persist changes.';
+        alert(message);
+        
+      } catch (err) {
+        hideLoading();
+        alert('Update failed: ' + err.message);
+      }
+    }
+    
+    // Set up update file drop
+    document.addEventListener('DOMContentLoaded', () => {
+      const updateDrop = document.getElementById('update-file-drop');
+      if (updateDrop) {
+        updateDrop.addEventListener('dragover', (e) => { e.preventDefault(); updateDrop.classList.add('dragover'); });
+        updateDrop.addEventListener('dragleave', () => updateDrop.classList.remove('dragover'));
+        updateDrop.addEventListener('drop', (e) => { 
+          e.preventDefault(); 
+          updateDrop.classList.remove('dragover'); 
+          if (e.dataTransfer.files[0]) {
+            document.getElementById('update-file-input').files = e.dataTransfer.files;
+            processUpdateFile(e.dataTransfer.files[0]);
+          }
+        });
+      }
+    });
+    
+    // ============================================
     // Load Client
     // ============================================
     async function openLoadClientModal() {
@@ -940,13 +1500,13 @@
       modal.classList.add('active');
       
       const listEl = document.getElementById('client-list');
-      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">Loading clients...</div>';
+      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #b8c5d6;">Loading clients...</div>';
       
       try {
         savedClients = await apiGet('/clients');
         
         if (savedClients.length === 0) {
-          listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">No saved clients found.</div>';
+          listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #b8c5d6;">No saved clients found.</div>';
         } else {
           listEl.innerHTML = savedClients.map(c => `
             <div class="client-item" onclick="selectClientToLoad(${c.id}, '${c.name.replace(/'/g, "\\'")}')" id="client-${c.id}">
@@ -1023,6 +1583,7 @@
         document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span>`;
         document.getElementById('btn-save').disabled = false;
         document.getElementById('btn-export').disabled = false;
+        document.getElementById('btn-update').disabled = false;
         
         hideLoading();
         renderAll();
@@ -1119,6 +1680,166 @@
       document.getElementById('atera-import-section').style.display = 'none';
       document.getElementById('atera-customer-dropdown').value = '';
       document.getElementById('btn-fetch-atera').disabled = true;
+      
+      // Reset Step 2 mode
+      resetStep2Mode();
+    }
+    
+    // ============================================
+    // Step 2 Mode Selection
+    // ============================================
+    let step2Mode = null; // null until user chooses, then 'full' or 'remote'
+    
+    function selectStep2Mode(mode) {
+      step2Mode = mode;
+      
+      // Update visual selection
+      const fullChoice = document.getElementById('choice-full-mapping');
+      const remoteChoice = document.getElementById('choice-remote-only');
+      
+      if (mode === 'full') {
+        fullChoice.style.borderColor = 'rgba(34, 197, 94, 0.6)';
+        fullChoice.style.background = 'rgba(34, 197, 94, 0.15)';
+        remoteChoice.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+        remoteChoice.style.background = 'rgba(251, 191, 36, 0.1)';
+        
+        document.getElementById('step2-full-mapping').style.display = 'block';
+        document.getElementById('step2-remote-only').style.display = 'none';
+      } else {
+        fullChoice.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+        fullChoice.style.background = 'rgba(34, 197, 94, 0.1)';
+        remoteChoice.style.borderColor = 'rgba(251, 191, 36, 0.6)';
+        remoteChoice.style.background = 'rgba(251, 191, 36, 0.15)';
+        
+        document.getElementById('step2-full-mapping').style.display = 'none';
+        document.getElementById('step2-remote-only').style.display = 'block';
+        
+        // Populate remote-only view
+        populateRemoteOnlyView();
+      }
+    }
+    
+    function populateRemoteOnlyView() {
+      // Identify remote devices only
+      const remoteDevices = [];
+      let ignoredCount = 0;
+      
+      pendingImport.forEach(d => {
+        if (!isPrivateIP(d.ip)) {
+          // Public IP = definitely remote
+          remoteDevices.push(d);
+        } else if (d.location_type === 'remote') {
+          // Atera marked as remote
+          remoteDevices.push(d);
+        } else {
+          // Office or unmapped device - ignore for this view
+          ignoredCount++;
+        }
+      });
+      
+      // Summary - simplified
+      const summaryHtml = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 32px; font-weight: 700; color: #f59e0b;">${remoteDevices.length}</div>
+            <div style="font-size: 13px; color: #b8c5d6;">Remote Workers Identified</div>
+          </div>
+          <div style="text-align: right; color: #64748b; font-size: 13px;">
+            ${ignoredCount} office/private IP devices ignored
+          </div>
+        </div>
+      `;
+      document.getElementById('remote-only-summary').innerHTML = summaryHtml;
+      
+      // Device list - only remote workers
+      let listHtml = '';
+      
+      if (remoteDevices.length > 0) {
+        remoteDevices.forEach(d => {
+          const geoInfo = d.reported_from_ip && publicIPGeoData[d.reported_from_ip];
+          const locationText = geoInfo ? `${geoInfo.city}, ${geoInfo.region}` : (d.reported_from_ip || 'Unknown location');
+          listHtml += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <div>
+                <div style="font-size: 13px; color: #e2e8f0;">${d.name}</div>
+                <div style="font-size: 11px; color: #64748b;">${d.ip}</div>
+              </div>
+              <div style="font-size: 12px; color: #f59e0b; text-align: right;">${locationText}</div>
+            </div>
+          `;
+        });
+      }
+      
+      document.getElementById('remote-only-list').innerHTML = listHtml || '<div style="color: #64748b; text-align: center; padding: 20px;">No remote workers detected.</div>';
+    }
+    
+    function finishRemoteOnly() {
+      // Mark all private subnet devices as "unmapped" and proceed
+      // Remote devices keep their classification
+      
+      devices = pendingImport.map(d => {
+        if (!isPrivateIP(d.ip)) {
+          // Public IP = Remote
+          return { ...d, classification: 'Remote/Home', location: 'Remote Worker' };
+        } else if (d.location_type === 'remote') {
+          // Atera marked as remote
+          return { ...d, classification: 'Remote/Home', location: 'Remote Worker' };
+        } else {
+          // Private IP without mapping
+          return { ...d, classification: 'Unmapped', location: null };
+        }
+      });
+      
+      // Add geolocation data for remote workers
+      devices = devices.map(d => {
+        if (d.reported_from_ip && publicIPGeoData[d.reported_from_ip]) {
+          const geo = publicIPGeoData[d.reported_from_ip];
+          return { ...d, lat: geo.lat, lng: geo.lng, location: `${geo.city}, ${geo.region}` };
+        }
+        return d;
+      });
+      
+      closeImportModal();
+      resetWizard();
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span> <span style="font-size: 11px; color: #fbbf24;">(Remote List Only)</span>`;
+      document.getElementById('btn-save').disabled = false;
+      document.getElementById('btn-export').disabled = false;
+      document.getElementById('btn-update').disabled = false;
+      
+      renderAll();
+      setTimeout(() => { 
+        try { 
+          if (markers && markers.getLayers && markers.getLayers().length > 0) { 
+            const b = markers.getBounds(); 
+            if (b && b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 8 }); 
+          } 
+        } catch(e) { console.warn('Fit bounds error:', e); } 
+      }, 100);
+      
+      alert('Remote list loaded!\n\nNote: Private subnet devices are marked as "Unmapped" since office locations were skipped. Use "Update Client" and select "Full Company Mapping" anytime to complete the mapping.');
+    }
+    
+    // Reset step 2 mode when going back or opening wizard
+    function resetStep2Mode() {
+      step2Mode = null; // No selection yet
+      const fullChoice = document.getElementById('choice-full-mapping');
+      const remoteChoice = document.getElementById('choice-remote-only');
+      // Reset both to unselected state
+      if (fullChoice) {
+        fullChoice.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+        fullChoice.style.background = 'rgba(34, 197, 94, 0.1)';
+      }
+      if (remoteChoice) {
+        remoteChoice.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+        remoteChoice.style.background = 'rgba(251, 191, 36, 0.1)';
+      }
+      // Hide both content sections until user chooses
+      const fullMapping = document.getElementById('step2-full-mapping');
+      const remoteOnly = document.getElementById('step2-remote-only');
+      if (fullMapping) fullMapping.style.display = 'none';
+      if (remoteOnly) remoteOnly.style.display = 'none';
     }
     
     async function wizardNext(step) {
@@ -1238,9 +1959,9 @@
         const geolocatedCount = devices.filter(d => d.geolocated).length;
         document.getElementById('import-summary').innerHTML = `
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
-            <div><div style="font-size: 28px; font-weight: 700; color: #60a5fa;">${devices.length}</div><div style="font-size: 12px; color: #64748b;">Total Devices</div></div>
-            <div><div style="font-size: 28px; font-weight: 700; color: #22c55e;">${mapped}</div><div style="font-size: 12px; color: #64748b;">Mapped</div></div>
-            <div><div style="font-size: 28px; font-weight: 700; color: #a78bfa;">${groups.filter(g => g.lat).length}</div><div style="font-size: 12px; color: #64748b;">Locations</div></div>
+            <div><div style="font-size: 28px; font-weight: 700; color: #60a5fa;">${devices.length}</div><div style="font-size: 12px; color: #b8c5d6;">Total Devices</div></div>
+            <div><div style="font-size: 28px; font-weight: 700; color: #22c55e;">${mapped}</div><div style="font-size: 12px; color: #b8c5d6;">Mapped</div></div>
+            <div><div style="font-size: 28px; font-weight: 700; color: #a78bfa;">${groups.filter(g => g.lat).length}</div><div style="font-size: 12px; color: #b8c5d6;">Locations</div></div>
           </div>
           ${geolocatedCount > 0 ? `<div style="margin-top: 16px; padding: 12px; background: rgba(251, 191, 36, 0.1); border-radius: 8px; font-size: 13px; color: #fbbf24;">🌍 ${geolocatedCount} remote devices auto-located via IP geolocation</div>` : ''}`;
       }
@@ -1266,11 +1987,13 @@
       document.getElementById('client-display').innerHTML = `Client: <span class="client-name">${clientName}</span>`;
       document.getElementById('btn-save').disabled = false;
       document.getElementById('btn-export').disabled = false;
+      document.getElementById('btn-update').disabled = false;
       renderAll();
       setTimeout(() => { try { if (markers && markers.getLayers && markers.getLayers().length > 0) { const b = markers.getBounds(); if (b && b.isValid()) map.fitBounds(b, { padding: [50, 50], maxZoom: 8 }); } } catch(e) { console.warn('Fit bounds error:', e); } }, 100);
     }
     
     function renderSubnetMappingList(geolocatedCount = 0, publicCount = 0) {
+      const displayClientName = clientName || 'this client';
       let html = '';
       
       // Show public IP geolocation summary if any
@@ -1281,7 +2004,7 @@
               <span style="font-size: 20px;">🌍</span>
               <strong style="color: #fbbf24;">Public IPs Auto-Geolocated</strong>
             </div>
-            <div style="font-size: 13px; color: #94a3b8;">
+            <div style="font-size: 13px; color: #b8c5d6;">
               ${geolocatedCount} of ${publicCount} public IP addresses have been automatically located via IP geolocation. 
               These will appear as individual remote worker locations on the map.
             </div>
@@ -1290,7 +2013,7 @@
       
       // Show private subnets that need mapping
       if (detectedSubnets.length > 0) {
-        html += `<div style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;"><strong>Private Subnets</strong> - Assign these to office locations:</div>`;
+        html += `<div style="font-size: 13px; color: #b8c5d6; margin-bottom: 12px;"><strong>Private Subnets for ${displayClientName}</strong> — Select the office location where devices on each subnet are located:</div>`;
         html += detectedSubnets.map((s, i) => {
           const existingMapping = subnetMappings.find(m => m.subnet === s.subnet);
           return `
@@ -1298,8 +2021,7 @@
             <div class="subnet">${s.subnet}.*</div>
             <div class="device-count">${s.count} devices</div>
             <select id="subnet-loc-${i}" onchange="document.getElementById('subnet-row-${i}').classList.toggle('mapped', this.value)">
-              <option value="">-- Select --</option>
-              ${officeLibrary.map(o => `<option value="${o.name}" ${existingMapping?.office_name === o.name ? 'selected' : ''}>${o.name}</option>`).join('')}
+              ${generateGroupedOfficeOptions(existingMapping?.office_name)}
             </select>
             <select id="subnet-type-${i}" style="width: 90px;">
               <option value="office" ${existingMapping?.mapping_type === 'office' ? 'selected' : ''}>Office</option>
@@ -1308,7 +2030,7 @@
           </div>
         `}).join('');
       } else if (publicCount === 0) {
-        html += '<p style="color:#64748b;text-align:center;padding:20px;">No subnets detected in import.</p>';
+        html += '<p style="color:#b8c5d6;text-align:center;padding:20px;">No subnets detected in import.</p>';
       }
       
       document.getElementById('subnet-mapping-list').innerHTML = html;
@@ -1320,18 +2042,9 @@
       const officeCount = analysis.office_device_count || 0;
       const remoteCount = analysis.remote_device_count || 0;
       const autoCreatedOffice = analysis.autoCreatedOffice;
+      const displayClientName = clientName || 'this client';
       
-      let html = `
-        <div style="background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <span style="font-size: 20px;">🔗</span>
-            <strong style="color: #60a5fa;">Atera Auto-Detection Results</strong>
-          </div>
-          <div style="font-size: 13px; color: #94a3b8;">
-            Devices were automatically classified based on shared public IP addresses.
-          </div>
-        </div>
-      `;
+      let html = ``;
       
       // Office devices section
       if (officeCount > 0) {
@@ -1344,14 +2057,14 @@
               <span style="font-size: 20px;">🏢</span>
               <strong style="color: #22c55e;">${officeCount} Office Devices</strong>
             </div>
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: #b8c5d6; margin-bottom: 12px;">
               Detected subnets: <span style="font-family: monospace;">${officeSubnets.map(s => s + '.*').join(', ')}</span>
             </div>
             <div class="form-group" style="margin: 0;">
-              <label style="color: #22c55e;">Assign these devices to Office Location:</label>
-              <select id="atera-office-location" style="margin-top: 8px;">
-                <option value="">-- Select Office --</option>
-                ${officeLibrary.map(o => `<option value="${o.name}" ${autoCreatedOffice && o.name === autoCreatedOffice.name ? 'selected' : ''}>${o.name}</option>`).join('')}
+              <label style="color: #22c55e;">ASSIGN THESE DEVICES TO OFFICE LOCATION:</label>
+              <div style="font-size: 12px; color: #b8c5d6; margin-bottom: 8px;">Select the office where <strong>${displayClientName}</strong>'s devices on these subnets are located.</div>
+              <select id="atera-office-location" style="margin-top: 4px;">
+                ${generateGroupedOfficeOptions(autoCreatedOffice?.name)}
               </select>
               ${autoSelectedNote}
             </div>
@@ -1367,7 +2080,7 @@
               <span style="font-size: 20px;">🏠</span>
               <strong style="color: #fbbf24;">${remoteCount} Remote Workers</strong>
             </div>
-            <div style="font-size: 13px; color: #94a3b8;">
+            <div style="font-size: 13px; color: #b8c5d6;">
               These devices are on private networks not associated with the office. 
               They will be geolocated using their public IP address (ReportedFromIP from Atera).
             </div>
@@ -1376,6 +2089,67 @@
       }
       
       document.getElementById('subnet-mapping-list').innerHTML = html;
+    }
+    
+    function generateGroupedOfficeOptions(selectedValue = '', suggestedOffices = null) {
+      // Use session suggested offices if none provided
+      const suggestions = suggestedOffices || sessionSuggestedOffices || [];
+      
+      // Group offices by state
+      const byState = {};
+      const noState = [];
+      
+      officeLibrary.forEach(o => {
+        const state = o.state?.toUpperCase() || '';
+        if (state) {
+          if (!byState[state]) byState[state] = [];
+          byState[state].push(o);
+        } else {
+          noState.push(o);
+        }
+      });
+      
+      // Sort states alphabetically
+      const sortedStates = Object.keys(byState).sort();
+      
+      // Build options HTML
+      let html = '<option value="">-- Select Office --</option>';
+      
+      // Add suggested offices at top if any
+      if (suggestions.length > 0) {
+        html += '<optgroup label="── Recently Added ──">';
+        suggestions.forEach(o => {
+          const office = officeLibrary.find(lib => lib.name === o.name || lib.id === o.id);
+          if (office) {
+            html += `<option value="${office.name}" ${office.name === selectedValue ? 'selected' : ''}>${office.name}</option>`;
+          }
+        });
+        html += '</optgroup>';
+      }
+      
+      // Add grouped by state
+      sortedStates.forEach(state => {
+        const offices = byState[state].sort((a, b) => a.name.localeCompare(b.name));
+        html += `<optgroup label="── ${state} ──">`;
+        offices.forEach(o => {
+          // Skip if already in suggested
+          if (suggestions.some(s => s.name === o.name)) return;
+          html += `<option value="${o.name}" ${o.name === selectedValue ? 'selected' : ''}>${o.name}</option>`;
+        });
+        html += '</optgroup>';
+      });
+      
+      // Add offices without state
+      if (noState.length > 0) {
+        html += '<optgroup label="── Other ──">';
+        noState.forEach(o => {
+          if (suggestions.some(s => s.name === o.name)) return;
+          html += `<option value="${o.name}" ${o.name === selectedValue ? 'selected' : ''}>${o.name}</option>`;
+        });
+        html += '</optgroup>';
+      }
+      
+      return html;
     }
     
     function classifyDeviceAtera(device) {
@@ -1455,7 +2229,7 @@
       }
       
       // Show loading state
-      resultsEl.innerHTML = '<div style="padding: 12px; color: #64748b; text-align: center;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Searching...</div>';
+      resultsEl.innerHTML = '<div style="padding: 12px; color: #b8c5d6; text-align: center;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Searching...</div>';
       resultsEl.classList.add('active');
       
       // Debounce to respect rate limits (and avoid unnecessary requests)
@@ -1739,6 +2513,7 @@
       document.getElementById('ma1-file-input').value = '';
       document.getElementById('ma1-file-info').style.display = 'none';
       document.getElementById('ma1-confirmation').style.display = 'none';
+      document.getElementById('ma1-initial-actions').style.display = 'flex';
       document.getElementById('ma1-confirm-checkbox').checked = false;
       document.getElementById('ma1-process-btn').disabled = true;
       document.getElementById('ma1-step-1').style.display = 'block';
@@ -1766,6 +2541,7 @@
           document.getElementById('ma1-filename').textContent = file.name;
           document.getElementById('ma1-file-info').style.display = 'block';
           document.getElementById('ma1-confirmation').style.display = 'block';
+          document.getElementById('ma1-initial-actions').style.display = 'none';
           
           // Enable process button when checkbox is checked
           document.getElementById('ma1-confirm-checkbox').onchange = function() {
@@ -1787,63 +2563,114 @@
       try {
         const ws = ma1FileData.Sheets['DD-General'];
         
-        // Extract Row 22 (Site Names) - 1-indexed in Excel, 0-indexed in array
-        // Row 22 = index 21
-        const siteNames = [];
-        const locationTypes = [];
+        // MA-1 Structure varies by file, so we need to find labels dynamically
+        // Look for "City" and "State/Province" labels in column A
+        let cityRow = -1;
+        let stateRow = -1;
+        let siteNameRow = -1;
         
-        // Get all cells - iterate through columns starting from B (column 2)
-        for (let col = 2; col <= 20; col++) { // Check up to column T
-          const siteCell = ws[XLSX.utils.encode_cell({ r: 21, c: col - 1 })]; // Row 22, 0-indexed = 21
-          const typeCell = ws[XLSX.utils.encode_cell({ r: 23, c: col - 1 })]; // Row 24 for location type
+        // Scan column A for labels (check first 50 rows)
+        for (let row = 0; row < 50; row++) {
+          const cellA = ws[XLSX.utils.encode_cell({ r: row, c: 0 })];
+          const label = cellA?.v?.toString().trim().toLowerCase() || '';
           
-          if (siteCell && siteCell.v) {
-            siteNames.push({
-              original: siteCell.v.toString().trim(),
-              locationType: typeCell ? typeCell.v.toString().trim() : ''
-            });
+          if (label === 'city') {
+            cityRow = row;
+          } else if (label === 'state/province' || label === 'state' || label === 'province') {
+            stateRow = row;
+          } else if (label === 'site name' || label === 'site/location name') {
+            siteNameRow = row;
           }
         }
         
-        if (siteNames.length === 0) {
+        // Fallback to original row numbers if labels not found
+        if (cityRow === -1) {
+          console.warn('City label not found, using fallback row 25');
+          cityRow = 24; // 0-indexed
+        }
+        if (stateRow === -1) {
+          console.warn('State label not found, using fallback row 26');
+          stateRow = 25; // 0-indexed
+        }
+        if (siteNameRow === -1) {
+          console.warn('Site Name label not found, using fallback row 22');
+          siteNameRow = 21; // 0-indexed
+        }
+        
+        console.log(`MA-1 parsing - Found rows: Site Name=${siteNameRow + 1}, City=${cityRow + 1}, State=${stateRow + 1}`);
+        
+        const sites = [];
+        
+        // Get all cells - iterate through columns starting from B (column 2)
+        for (let col = 1; col < 20; col++) { // Check columns B through T (0-indexed: 1-19)
+          const siteNameCell = ws[XLSX.utils.encode_cell({ r: siteNameRow, c: col })];
+          const cityCell = ws[XLSX.utils.encode_cell({ r: cityRow, c: col })];
+          const stateCell = ws[XLSX.utils.encode_cell({ r: stateRow, c: col })];
+          
+          const siteName = siteNameCell?.v?.toString().trim() || '';
+          const city = cityCell?.v?.toString().trim() || '';
+          const stateRaw = stateCell?.v?.toString().trim() || '';
+          
+          // Skip if no city - indicates no physical office location
+          if (!city) continue;
+          
+          // Extract state code from formats like "New Jersey (NJ)" or "Indiana (IN)" or just "NJ"
+          let state = '';
+          const stateMatch = stateRaw.match(/\(([A-Z]{2})\)/i);
+          if (stateMatch) {
+            state = stateMatch[1].toUpperCase();
+          } else if (/^[A-Z]{2}$/i.test(stateRaw)) {
+            state = stateRaw.toUpperCase();
+          } else {
+            // Try to extract state code from full state name
+            state = extractStateCode(stateRaw) || stateRaw;
+          }
+          
+          sites.push({
+            siteName: siteName,
+            city: city,
+            state: state,
+            stateRaw: stateRaw
+          });
+        }
+        
+        if (sites.length === 0) {
           hideLoading();
-          alert('No site names found in Row 22 of DD-General tab.');
+          alert('No office locations found. Make sure the City field is populated in the DD-General tab.');
           return;
         }
         
-        // Parse site names and look up coordinates
+        // Look up coordinates for each site
         ma1Sites = [];
-        document.getElementById('loading-text').textContent = `Looking up coordinates for ${siteNames.length} sites...`;
+        document.getElementById('loading-text').textContent = `Looking up coordinates for ${sites.length} sites...`;
         
-        for (let i = 0; i < siteNames.length; i++) {
-          const site = siteNames[i];
-          document.getElementById('loading-text').textContent = `Looking up ${i + 1}/${siteNames.length}: ${site.original}`;
+        for (let i = 0; i < sites.length; i++) {
+          const site = sites[i];
+          const displayName = site.state ? `${site.city}, ${site.state}` : site.city;
+          document.getElementById('loading-text').textContent = `Looking up ${i + 1}/${sites.length}: ${displayName}`;
           
-          // Parse city/state from site name
-          // Examples: "West Hartford CT (HQ)", "Alabama (Fairhope)", "Boston, MA (Appt. only)"
-          const parsed = parseMA1SiteName(site.original);
+          // Build search query
+          const searchQuery = site.state ? `${site.city}, ${site.state}, USA` : `${site.city}, USA`;
           
           // Look up coordinates
           let coords = null;
-          if (parsed.searchQuery) {
-            const results = await searchCitiesNominatim(parsed.searchQuery);
-            if (results.length > 0) {
-              const result = results[0];
-              coords = { 
-                lat: result.lat, 
-                lng: result.lng, 
-                foundLocation: result.fullName || result.city,
-                city: result.city,
-                state: extractStateCode(result.state) || result.state
-              };
-            }
-            // Rate limit
-            await new Promise(resolve => setTimeout(resolve, 300));
+          const results = await searchCitiesNominatim(searchQuery);
+          if (results.length > 0) {
+            const result = results[0];
+            coords = { 
+              lat: result.lat, 
+              lng: result.lng, 
+              foundLocation: result.fullName || result.city,
+              city: result.city,
+              state: extractStateCode(result.state) || result.state
+            };
           }
+          // Rate limit
+          await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Check if already in office library using accurate Nominatim name
-          const accurateCity = coords?.city || parsed.city;
-          const accurateState = coords?.state || parsed.state;
+          // Check if already in office library
+          const accurateCity = coords?.city || site.city;
+          const accurateState = coords?.state || site.state;
           const accurateName = accurateState ? `${accurateCity}, ${accurateState}` : accurateCity;
           const existsInLibrary = officeLibrary.some(o => 
             o.name.toLowerCase() === accurateName.toLowerCase() ||
@@ -1851,14 +2678,47 @@
           );
           
           ma1Sites.push({
-            original: site.original,
-            locationType: site.locationType,
-            parsed: parsed,
+            original: site.siteName || displayName,
+            city: site.city,
+            state: site.state,
+            parsed: { 
+              city: site.city, 
+              state: site.state, 
+              officeName: displayName,
+              searchQuery: searchQuery
+            },
             coords: coords,
             existsInLibrary: existsInLibrary,
-            selected: !existsInLibrary && coords !== null && !site.locationType.toLowerCase().includes('remote')
+            selected: !existsInLibrary && coords !== null
           });
         }
+        
+        // Deduplicate sites based on final city/state (using Nominatim results when available)
+        const deduplicatedSites = [];
+        const seenLocations = new Map(); // key: "city,state" lowercase, value: index in deduplicatedSites
+        
+        for (const site of ma1Sites) {
+          const city = (site.coords?.city || site.city || '').toLowerCase();
+          const state = (site.coords?.state || site.state || '').toUpperCase();
+          const locationKey = `${city},${state}`;
+          
+          if (seenLocations.has(locationKey)) {
+            // Duplicate found - merge the original site names
+            const existingIndex = seenLocations.get(locationKey);
+            const existing = deduplicatedSites[existingIndex];
+            // Append to originals list
+            if (!existing.originals) {
+              existing.originals = [existing.original];
+            }
+            existing.originals.push(site.original);
+          } else {
+            // New location
+            seenLocations.set(locationKey, deduplicatedSites.length);
+            deduplicatedSites.push({ ...site });
+          }
+        }
+        
+        ma1Sites = deduplicatedSites;
         
         hideLoading();
         renderMA1Sites();
@@ -1953,17 +2813,13 @@
       // Separate sites into categories
       const officeLocations = [];
       const alreadyInLibrary = [];
-      const remoteWorkers = [];
       const notFound = [];
       
       ma1Sites.forEach((site, index) => {
         site._index = index; // Store original index for checkbox binding
-        const isRemote = site.locationType.toLowerCase().includes('remote');
         
         if (site.existsInLibrary) {
           alreadyInLibrary.push(site);
-        } else if (isRemote) {
-          remoteWorkers.push(site);
         } else if (!site.coords) {
           notFound.push(site);
         } else {
@@ -1977,8 +2833,8 @@
       html += `
         <div style="background: rgba(96, 165, 250, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
           <div style="color: #60a5fa; font-weight: 600;">Found ${ma1Sites.length} sites in MA-1</div>
-          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
-            ${officeLocations.length} office locations to add • ${alreadyInLibrary.length} already in library • ${remoteWorkers.length} remote workers skipped
+          <div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;">
+            ${officeLocations.length} office locations to add • ${alreadyInLibrary.length} already in library${notFound.length > 0 ? ' • ' + notFound.length + ' not found' : ''}
           </div>
         </div>
       `;
@@ -1996,18 +2852,24 @@
           const displayState = site.coords.state || site.parsed.state;
           const displayName = displayState ? `${displayCity}, ${displayState}` : displayCity;
           
+          // Handle multiple originals (merged duplicates)
+          const originals = site.originals || [site.original];
+          const originalsText = originals.length > 1 
+            ? `From ${originals.length} sites: ${originals.join(', ')}`
+            : `Original: ${site.original}`;
+          
           html += `
             <div style="background: rgba(34, 197, 94, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #22c55e;">
               <div style="display: flex; align-items: flex-start; gap: 12px;">
                 <div style="padding-top: 2px;">
-                  <input type="checkbox" id="ma1-site-${site._index}" ${site.selected ? 'checked' : ''} onchange="ma1Sites[${site._index}].selected = this.checked" style="width: 18px; height: 18px;">
+                  <input type="checkbox" id="ma1-site-${site._index}" ${site.selected ? 'checked' : ''} onchange="ma1Sites[${site._index}].selected = this.checked; ma1UpdateSummary();" style="width: 18px; height: 18px;">
                 </div>
                 <div style="flex: 1;">
                   <div style="font-weight: 600; color: #e2e8f0;">${displayName}</div>
-                  <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Original: ${site.original}</div>
+                  <div style="font-size: 12px; color: #b8c5d6; margin-top: 2px;">${originalsText}</div>
                   <div style="font-size: 12px; color: #22c55e; margin-top: 6px;">
                     ${site.coords.foundLocation}
-                    <span style="color: #64748b;"> (${site.coords.lat.toFixed(4)}, ${site.coords.lng.toFixed(4)})</span>
+                    <span style="color: #b8c5d6;"> (${site.coords.lat.toFixed(4)}, ${site.coords.lng.toFixed(4)})</span>
                   </div>
                 </div>
               </div>
@@ -2020,7 +2882,7 @@
       // Already in library
       if (alreadyInLibrary.length > 0) {
         html += `<div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          <div style="font-size: 12px; font-weight: 600; color: #b8c5d6; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
             ✓ Already in Library (${alreadyInLibrary.length})
           </div>`;
         
@@ -2030,12 +2892,19 @@
           const displayState = site.coords?.state || site.parsed.state;
           const displayName = displayState ? `${displayCity}, ${displayState}` : displayCity;
           
+          // Handle multiple originals (merged duplicates)
+          const originals = site.originals || [site.original];
+          const originalsText = originals.length > 1 
+            ? `From ${originals.length} sites`
+            : '';
+          
           html += `
-            <div style="background: rgba(100, 116, 139, 0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid #64748b;">
+            <div style="background: rgba(100, 116, 139, 0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid #b8c5d6;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="color: #64748b;">✓</span>
+                <span style="color: #b8c5d6;">✓</span>
                 <div>
-                  <span style="color: #94a3b8;">${displayName}</span>
+                  <span style="color: #b8c5d6;">${displayName}</span>
+                  ${originalsText ? `<span style="font-size: 11px; color: #64748b; margin-left: 8px;">(${originalsText})</span>` : ''}
                 </div>
               </div>
             </div>
@@ -2044,27 +2913,42 @@
         html += `</div>`;
       }
       
-      // Remote Workers (skipped)
-      if (remoteWorkers.length > 0) {
+      // Not found - with edit/retry functionality
+      if (notFound.length > 0) {
         html += `<div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: #f59e0b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-            🏠 Remote Workers - Skipped (${remoteWorkers.length})
+          <div style="font-size: 12px; font-weight: 600; color: #ef4444; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            ⚠️ Location Not Found (${notFound.length})
           </div>
-          <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic;">
-            These are marked as remote worker locations in the MA-1 and won't be added as office locations.
+          <div style="font-size: 11px; color: #b8c5d6; margin-bottom: 8px; font-style: italic;">
+            Edit the location name and click Retry to search again.
           </div>`;
         
-        remoteWorkers.forEach(site => {
-          // Use Nominatim city/state for display name when available
-          const displayCity = site.coords?.city || site.parsed.city;
-          const displayState = site.coords?.state || site.parsed.state;
-          const displayName = displayState ? `${displayCity}, ${displayState}` : displayCity;
+        notFound.forEach(site => {
+          // Handle multiple originals (merged duplicates)
+          const originals = site.originals || [site.original];
+          const originalsText = originals.length > 1 
+            ? `From ${originals.length} sites: ${originals.join(', ')}`
+            : `Original: ${site.original}`;
           
           html += `
-            <div style="background: rgba(245, 158, 11, 0.05); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid #f59e0b; opacity: 0.7;">
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #94a3b8;">${displayName}</span>
-                <span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 8px; border-radius: 4px; font-size: 10px;">Remote</span>
+            <div id="ma1-notfound-${site._index}" style="background: rgba(239, 68, 68, 0.05); border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #ef4444;">
+              <div id="ma1-notfound-display-${site._index}">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="color: #f87171; font-weight: 500;">${site.parsed.officeName}</div>
+                  <button onclick="ma1EnableEdit(${site._index})" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; padding: 4px 10px;">✏️ Edit</button>
+                </div>
+                <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">${originalsText}</div>
+              </div>
+              <div id="ma1-notfound-edit-${site._index}" style="display: none;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="text" id="ma1-edit-input-${site._index}" value="${site.parsed.officeName}" 
+                    style="flex: 1; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #e2e8f0; font-size: 13px;"
+                    placeholder="City, State or City, Country">
+                  <button onclick="ma1RetrySearch(${site._index})" class="btn btn-sm" style="background: rgba(59, 130, 246, 0.3); color: #60a5fa; border: none; padding: 8px 12px; white-space: nowrap;">🔍 Retry</button>
+                  <button onclick="ma1CancelEdit(${site._index})" class="btn btn-sm" style="background: rgba(100, 116, 139, 0.2); color: #b8c5d6; border: none; padding: 8px 12px;">✕</button>
+                </div>
+                <div style="font-size: 11px; color: #b8c5d6; margin-top: 6px;">${originalsText}</div>
+                <div id="ma1-edit-error-${site._index}" style="display: none; font-size: 12px; color: #ef4444; margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 4px;"></div>
               </div>
             </div>
           `;
@@ -2072,25 +2956,51 @@
         html += `</div>`;
       }
       
-      // Not found
-      if (notFound.length > 0) {
-        html += `<div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: #ef4444; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-            ⚠️ Location Not Found (${notFound.length})
-          </div>`;
-        
-        notFound.forEach(site => {
-          html += `
-            <div style="background: rgba(239, 68, 68, 0.05); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid #ef4444;">
-              <div style="color: #f87171;">${site.parsed.officeName}</div>
-              <div style="font-size: 11px; color: #64748b;">Original: ${site.original}</div>
-            </div>
-          `;
-        });
-        html += `</div>`;
+      // Selection summary before buttons
+      const selectedCount = ma1Sites.filter(s => s.selected && !s.existsInLibrary && s.coords).length;
+      const skippedLibrary = alreadyInLibrary.length;
+      const skippedNotFound = notFound.length;
+      
+      // Build summary message based on state
+      let summaryHtml = '';
+      if (selectedCount === 0 && skippedLibrary > 0 && officeLocations.length === 0) {
+        // All locations already in library
+        summaryHtml = `<span style="color: #22c55e; font-weight: 600;">✓ All ${skippedLibrary} location${skippedLibrary !== 1 ? 's' : ''} already in library</span>`;
+      } else if (selectedCount === 0 && officeLocations.length > 0) {
+        // User unchecked everything
+        summaryHtml = `<span style="color: #b8c5d6;">No locations selected</span>`;
+      } else {
+        summaryHtml = `
+          <span style="color: #22c55e; font-weight: 600;">Will add: ${selectedCount} office${selectedCount !== 1 ? 's' : ''}</span>
+          <span style="color: #b8c5d6; margin-left: 12px; font-size: 13px;">
+            Skipping: ${skippedLibrary > 0 ? skippedLibrary + ' in library' : ''}${skippedLibrary > 0 && skippedNotFound > 0 ? ', ' : ''}${skippedNotFound > 0 ? skippedNotFound + ' not found' : ''}${skippedLibrary === 0 && skippedNotFound === 0 ? 'none' : ''}
+          </span>
+        `;
       }
       
+      html += `
+        <div id="ma1-selection-summary" style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-top: 16px; border: 1px solid rgba(255,255,255,0.1);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div>${summaryHtml}</div>
+          </div>
+        </div>
+      `;
+      
       document.getElementById('ma1-sites-list').innerHTML = html;
+      
+      // Update button based on whether there are sites to add
+      const addBtn = document.getElementById('ma1-add-btn');
+      if (selectedCount === 0) {
+        // No sites to add - show Done button
+        addBtn.textContent = 'Done';
+        addBtn.className = 'btn btn-primary';
+        addBtn.onclick = closeMA1AndRefresh;
+      } else {
+        // Sites to add - show Add button
+        addBtn.textContent = 'Add Selected Offices';
+        addBtn.className = 'btn btn-success';
+        addBtn.onclick = ma1AddSelected;
+      }
     }
     
     function ma1Back() {
@@ -2109,6 +3019,7 @@
       showLoading(`Adding ${toAdd.length} offices...`);
       let added = 0;
       let failed = 0;
+      const addedOffices = [];
       
       for (const site of toAdd) {
         try {
@@ -2126,12 +3037,16 @@
             longitude: site.coords.lng
           });
           officeLibrary.push(newOffice);
+          addedOffices.push(newOffice);
           added++;
         } catch (err) {
           console.error(`Failed to add ${site.parsed.officeName}:`, err);
           failed++;
         }
       }
+      
+      // Track these offices for smart suggestions in dropdowns
+      sessionSuggestedOffices = [...addedOffices, ...sessionSuggestedOffices].slice(0, 10);
       
       hideLoading();
       
@@ -2158,6 +3073,124 @@
       }
     }
     
+    function ma1EnableEdit(index) {
+      document.getElementById(`ma1-notfound-display-${index}`).style.display = 'none';
+      document.getElementById(`ma1-notfound-edit-${index}`).style.display = 'block';
+      document.getElementById(`ma1-edit-input-${index}`).focus();
+      document.getElementById(`ma1-edit-error-${index}`).style.display = 'none';
+    }
+    
+    function ma1CancelEdit(index) {
+      document.getElementById(`ma1-notfound-display-${index}`).style.display = 'block';
+      document.getElementById(`ma1-notfound-edit-${index}`).style.display = 'none';
+      // Reset input to original parsed value
+      document.getElementById(`ma1-edit-input-${index}`).value = ma1Sites[index].parsed.officeName;
+    }
+    
+    async function ma1RetrySearch(index) {
+      const input = document.getElementById(`ma1-edit-input-${index}`);
+      const errorDiv = document.getElementById(`ma1-edit-error-${index}`);
+      const searchQuery = input.value.trim();
+      
+      if (!searchQuery) {
+        errorDiv.textContent = 'Please enter a location to search.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      
+      // Show loading state
+      input.disabled = true;
+      errorDiv.style.display = 'none';
+      const retryBtn = input.parentElement.querySelector('button');
+      const originalText = retryBtn.innerHTML;
+      retryBtn.innerHTML = '⏳ Searching...';
+      retryBtn.disabled = true;
+      
+      try {
+        // Search using Nominatim
+        const results = await searchCitiesNominatim(searchQuery);
+        
+        if (results.length > 0) {
+          const result = results[0];
+          const coords = {
+            lat: result.lat,
+            lng: result.lng,
+            foundLocation: result.fullName || result.city,
+            city: result.city,
+            state: extractStateCode(result.state) || result.state
+          };
+          
+          // Check if this location already exists in library
+          const accurateCity = coords.city;
+          const accurateState = coords.state;
+          const accurateName = accurateState ? `${accurateCity}, ${accurateState}` : accurateCity;
+          const existsInLibrary = officeLibrary.some(o => 
+            o.name.toLowerCase() === accurateName.toLowerCase() ||
+            (o.city?.toLowerCase() === accurateCity?.toLowerCase() && o.state?.toUpperCase() === accurateState?.toUpperCase())
+          );
+          
+          // Update the site data
+          ma1Sites[index].coords = coords;
+          ma1Sites[index].existsInLibrary = existsInLibrary;
+          ma1Sites[index].selected = !existsInLibrary;
+          ma1Sites[index].parsed.officeName = accurateName;
+          
+          // Re-render the entire list to move item to correct category
+          renderMA1Sites();
+          
+        } else {
+          // Still not found
+          errorDiv.textContent = `Could not find "${searchQuery}". Try a different format like "City, Province" or "City, Canada".`;
+          errorDiv.style.display = 'block';
+          input.disabled = false;
+          retryBtn.innerHTML = originalText;
+          retryBtn.disabled = false;
+        }
+        
+      } catch (err) {
+        errorDiv.textContent = 'Search failed: ' + err.message;
+        errorDiv.style.display = 'block';
+        input.disabled = false;
+        retryBtn.innerHTML = originalText;
+        retryBtn.disabled = false;
+      }
+    }
+    
+    function ma1UpdateSummary() {
+      // Recalculate counts
+      const selectedCount = ma1Sites.filter(s => s.selected && !s.existsInLibrary && s.coords).length;
+      const skippedLibrary = ma1Sites.filter(s => s.existsInLibrary).length;
+      const skippedNotFound = ma1Sites.filter(s => !s.coords).length;
+      
+      const summaryEl = document.getElementById('ma1-selection-summary');
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <span style="color: #22c55e; font-weight: 600;">Will add: ${selectedCount} office${selectedCount !== 1 ? 's' : ''}</span>
+              <span style="color: #b8c5d6; margin-left: 12px; font-size: 13px;">
+                Skipping: ${skippedLibrary > 0 ? skippedLibrary + ' in library' : ''}${skippedLibrary > 0 && skippedNotFound > 0 ? ', ' : ''}${skippedNotFound > 0 ? skippedNotFound + ' not found' : ''}${skippedLibrary === 0 && skippedNotFound === 0 ? 'none' : ''}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Update button based on selection count
+      const addBtn = document.getElementById('ma1-add-btn');
+      if (addBtn) {
+        if (selectedCount === 0) {
+          addBtn.textContent = 'Done';
+          addBtn.className = 'btn btn-primary';
+          addBtn.onclick = closeMA1AndRefresh;
+        } else {
+          addBtn.textContent = 'Add Selected Offices';
+          addBtn.className = 'btn btn-success';
+          addBtn.onclick = ma1AddSelected;
+        }
+      }
+    }
+    
     // Set up MA-1 file drop
     document.addEventListener('DOMContentLoaded', () => {
       const ma1Drop = document.getElementById('ma1-file-drop');
@@ -2173,7 +3206,40 @@
           }
         });
       }
+      
+      // Fix Leaflet map rendering on first load
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
     });
+    
+    // Aggressive map fix - multiple attempts to ensure tiles load
+    window.addEventListener('load', () => {
+      // Try multiple times at different intervals
+      [100, 300, 500, 1000, 2000].forEach(delay => {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, delay);
+      });
+    });
+    
+    // Also fix when tab/window becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        setTimeout(() => map.invalidateSize(), 100);
+      }
+    });
+    
+    // Use ResizeObserver as ultimate fallback
+    if (typeof ResizeObserver !== 'undefined') {
+      const mapContainer = document.querySelector('.map-container');
+      if (mapContainer) {
+        const resizeObserver = new ResizeObserver(() => {
+          map.invalidateSize();
+        });
+        resizeObserver.observe(mapContainer);
+      }
+    }
     
     // ============================================
     // File Handling
@@ -2233,11 +3299,11 @@
           
           let previewHtml = '';
           if (privateCount > 0) {
-            previewHtml += '<div style="margin-bottom: 8px; color: #94a3b8;"><strong>🏢 Private subnets</strong> (require manual mapping):</div>' +
-              Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([s, c]) => `<div style="display: flex; justify-content: space-between; padding: 4px 0;"><span style="font-family: monospace;">${s}.*</span><span style="color: #64748b;">${c} devices</span></div>`).join('');
+            previewHtml += '<div style="margin-bottom: 8px; color: #b8c5d6;"><strong>🏢 Private subnets</strong> (require manual mapping):</div>' +
+              Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([s, c]) => `<div style="display: flex; justify-content: space-between; padding: 4px 0;"><span style="font-family: monospace;">${s}.*</span><span style="color: #b8c5d6;">${c} devices</span></div>`).join('');
           }
           if (publicCount > 0) {
-            previewHtml += `<div style="margin-top: 12px; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 8px;"><strong style="color: #fbbf24;">🌍 ${publicCount} public IPs</strong><div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Will be auto-located via IP geolocation</div></div>`;
+            previewHtml += `<div style="margin-top: 12px; padding: 10px; background: rgba(251, 191, 36, 0.1); border-radius: 8px;"><strong style="color: #fbbf24;">🌍 ${publicCount} public IPs</strong><div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;">Will be auto-located via IP geolocation</div></div>`;
           }
           
           document.getElementById('preview-subnets').innerHTML = previewHtml;
@@ -2282,7 +3348,7 @@
       const statusBox = document.getElementById('atera-status-box');
       const customerSelect = document.getElementById('atera-customer-select');
       
-      statusBox.innerHTML = '<div style="color: #64748b;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Checking Atera connection...</div>';
+      statusBox.innerHTML = '<div style="color: #b8c5d6;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Checking Atera connection...</div>';
       statusBox.style.display = 'block';
       customerSelect.style.display = 'none';
       
@@ -2292,7 +3358,7 @@
         if (!status.configured) {
           statusBox.innerHTML = `
             <div style="color: #ef4444; margin-bottom: 8px;">⚠️ Atera API Not Configured</div>
-            <div style="font-size: 12px; color: #64748b;">Add ATERA_API_KEY to .env file on the server and restart the API.</div>
+            <div style="font-size: 12px; color: #b8c5d6;">Add ATERA_API_KEY to .env file on the server and restart the API.</div>
           `;
           ateraConfigured = false;
           return;
@@ -2301,7 +3367,7 @@
         if (!status.connected) {
           statusBox.innerHTML = `
             <div style="color: #fbbf24; margin-bottom: 8px;">⚠️ Atera API Connection Failed</div>
-            <div style="font-size: 12px; color: #64748b;">${status.message}</div>
+            <div style="font-size: 12px; color: #b8c5d6;">${status.message}</div>
           `;
           ateraConfigured = false;
           return;
@@ -2312,7 +3378,7 @@
         ateraConfigured = true;
         
         // Fetch customer list
-        statusBox.innerHTML = '<div style="color: #64748b;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Loading customers...</div>';
+        statusBox.innerHTML = '<div style="color: #b8c5d6;"><span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Loading customers...</div>';
         
         ateraCustomers = await apiGet('/atera/customers');
         
@@ -2327,7 +3393,7 @@
       } catch (err) {
         statusBox.innerHTML = `
           <div style="color: #ef4444; margin-bottom: 8px;">❌ Error checking Atera</div>
-          <div style="font-size: 12px; color: #64748b;">${err.message}</div>
+          <div style="font-size: 12px; color: #b8c5d6;">${err.message}</div>
         `;
         ateraConfigured = false;
       }
@@ -2355,7 +3421,7 @@
           <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px; margin-top: 12px;">
             <div style="font-size: 12px; color: #22c55e; margin-bottom: 4px;">📍 Customer Address from Atera:</div>
             <div style="color: #e2e8f0;">${addressParts.join(', ')}</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 8px;">This will be used to auto-create the office location</div>
+            <div style="font-size: 11px; color: #b8c5d6; margin-top: 8px;">This will be used to auto-create the office location</div>
           </div>
         `;
         addressInfoEl.style.display = 'block';
@@ -2457,7 +3523,7 @@
         let previewHtml = `
           <div style="margin-bottom: 12px; padding: 10px; background: rgba(96, 165, 250, 0.1); border-radius: 8px;">
             <strong style="color: #60a5fa;">🔗 Data from Atera API</strong>
-            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Auto-detected office vs remote based on shared public IPs</div>
+            <div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;">Auto-detected office vs remote based on shared public IPs</div>
           </div>
         `;
         
@@ -2471,10 +3537,10 @@
                 <span style="font-size: 18px;">🏢</span>
                 <strong style="color: #22c55e;">${officeCount} Office Devices Detected</strong>
               </div>
-              <div style="font-size: 12px; color: #94a3b8;">
+              <div style="font-size: 12px; color: #b8c5d6;">
                 Auto-detected office subnets: <span style="font-family: monospace; color: #22c55e;">${officeSubnets.map(s => s + '.*').join(', ')}</span>
               </div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+              <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">
                 (3+ devices sharing the same public IP = office location)
               </div>
               ${officeNote}
@@ -2489,7 +3555,7 @@
                 <span style="font-size: 18px;">🏠</span>
                 <strong style="color: #fbbf24;">${remoteCount} Remote Workers Detected</strong>
               </div>
-              <div style="font-size: 12px; color: #94a3b8;">
+              <div style="font-size: 12px; color: #b8c5d6;">
                 Will be geolocated using their public IP (ReportedFromIP)
               </div>
             </div>
@@ -2562,7 +3628,7 @@
           </div>
           <ul class="device-list ${exp ? 'expanded' : ''}">
             ${g.devices.slice(0, 20).map(d => `<li class="device-item"><div class="device-name">${d.name}</div><div class="device-meta">${d.ip} • ${d.type}</div></li>`).join('')}
-            ${g.devices.length > 20 ? `<li class="device-item" style="color: #64748b;">... +${g.devices.length - 20} more</li>` : ''}
+            ${g.devices.length > 20 ? `<li class="device-item" style="color: #b8c5d6;">... +${g.devices.length - 20} more</li>` : ''}
           </ul>`;
       }).join('');
     }
@@ -2574,7 +3640,7 @@
       if (viewMode === 'locations') {
         getFilteredLocationGroups().forEach(g => {
           if (g.lat && g.lng) {
-            const c = g.classification === 'Office' ? '#22c55e' : g.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const c = g.classification === 'Office' ? '#22c55e' : g.classification === 'Remote/Home' ? '#f59e0b' : '#b8c5d6';
             const sz = Math.min(Math.max(36, Math.sqrt(g.devices.length) * 8), 70);
             const icon = L.divIcon({ className: 'x', html: `<div style="width:${sz}px;height:${sz}px;background:${c};border-radius:50%;border:3px solid white;box-shadow:0 4px 15px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:${sz > 50 ? 14 : 12}px;font-weight:700;color:white">${g.devices.length}</div>`, iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2] });
             L.marker([g.lat, g.lng], { icon }).bindPopup(`<div class="popup-title">${g.name}</div><div class="popup-row"><span class="popup-label">Type:</span> ${g.classification}</div><div class="popup-row"><span class="popup-label">Devices:</span> ${g.devices.length}</div><div class="popup-devices">${g.devices.slice(0, 5).map(d => `<div class="popup-device">${d.name} (${d.ip})</div>`).join('')}${g.devices.length > 5 ? `<div class="popup-device">+${g.devices.length - 5} more</div>` : ''}</div>`, { maxWidth: 300 }).addTo(markers);
@@ -2587,7 +3653,7 @@
         else if (currentFilter === 'unknown') f = f.filter(d => d.classification === 'Unknown');
         f.forEach(d => {
           if (d.lat && d.lng) {
-            const c = d.classification === 'Office' ? '#22c55e' : d.classification === 'Remote/Home' ? '#f59e0b' : '#94a3b8';
+            const c = d.classification === 'Office' ? '#22c55e' : d.classification === 'Remote/Home' ? '#f59e0b' : '#b8c5d6';
             const icon = L.divIcon({ className: 'x', html: `<div style="width:12px;height:12px;background:${c};border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
             L.marker([d.lat + (Math.random() - .5) * .4, d.lng + (Math.random() - .5) * .4], { icon }).bindPopup(`<div class="popup-title">${d.name}</div><div class="popup-row"><span class="popup-label">IP:</span> ${d.ip}</div><div class="popup-row"><span class="popup-label">Location:</span> ${d.location}</div>`).addTo(markers);
           }
@@ -2601,13 +3667,13 @@
     // ============================================
     async function renderOfficeLibrary() {
       const listEl = document.getElementById('office-library-list');
-      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">Loading offices...</div>';
+      listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #b8c5d6;">Loading offices...</div>';
       
       try {
         officeLibrary = await apiGet('/offices');
         
         if (officeLibrary.length === 0) {
-          listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">No offices yet. Add one below.</div>';
+          listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #b8c5d6;">No offices yet. Add one below.</div>';
         } else {
           // Group offices by state/province
           const grouped = groupOfficesByState(officeLibrary);
@@ -2638,7 +3704,7 @@
                   ${offices.map(o => `
                     <div class="office-item">
                       <div class="office-item-info">
-                        <span class="office-item-name">${o.city || o.name}${o.city && o.name !== o.city + ', ' + o.state ? ' <span style="color:#64748b;font-size:11px;">(' + o.name + ')</span>' : ''}</span>
+                        <span class="office-item-name">${o.city || o.name}${o.city && o.name !== o.city + ', ' + o.state ? ' <span style="color:#b8c5d6;font-size:11px;">(' + o.name + ')</span>' : ''}</span>
                         <span class="office-item-coords">${o.latitude !== null ? o.latitude.toFixed(4) + ', ' + o.longitude.toFixed(4) : 'No coordinates'}</span>
                       </div>
                       <button class="btn-delete-sm" onclick="removeOfficeFromLibrary(${o.id}, '${o.name.replace(/'/g, "\\'")}')" title="Delete">×</button>
@@ -2650,7 +3716,7 @@
           });
           
           html += `</div>`;
-          html += `<div style="font-size: 12px; color: #64748b; margin-top: 8px; text-align: right;">${officeLibrary.length} offices in ${states.length} states/provinces</div>`;
+          html += `<div style="font-size: 12px; color: #b8c5d6; margin-top: 8px; text-align: right;">${officeLibrary.length} offices in ${states.length} states/provinces</div>`;
           
           listEl.innerHTML = html;
         }
@@ -2709,7 +3775,7 @@
     // Edit Subnets
     // ============================================
     function renderEditSubnetList() {
-      document.getElementById('edit-subnet-list').innerHTML = subnetMappings.length === 0 ? '<p style="color:#64748b;text-align:center;padding:20px;">No mappings configured.</p>' :
+      document.getElementById('edit-subnet-list').innerHTML = subnetMappings.length === 0 ? '<p style="color:#b8c5d6;text-align:center;padding:20px;">No mappings configured.</p>' :
         subnetMappings.map((m, i) => `
           <div class="subnet-mapping-row mapped">
             <div class="subnet">${m.subnet}.*</div>
