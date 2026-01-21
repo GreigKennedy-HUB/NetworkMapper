@@ -1912,21 +1912,54 @@
       }
       if (step === 2) {
         if (importSource === 'atera' && ateraAnalysis) {
-          // ATERA IMPORT: Build mappings from auto-detected subnets
+          // ATERA IMPORT: Build mappings from auto-detected office locations
           subnetMappings = [];
+          const officeLocations = ateraAnalysis.office_locations || [];
           
-          // Get selected office location for office devices
-          const officeSelect = document.getElementById('atera-office-location');
-          const selectedOfficeName = officeSelect?.value || '';
-          
-          if (selectedOfficeName && ateraAnalysis.office_subnets) {
-            ateraAnalysis.office_subnets.forEach(subnet => {
-              subnetMappings.push({
-                subnet: subnet,
-                office_name: selectedOfficeName,
-                mapping_type: 'office'
+          // Process each office location
+          for (let i = 0; i < officeLocations.length; i++) {
+            const officeName = document.getElementById(`office-loc-final-name-${i}`)?.value;
+            const officeCity = document.getElementById(`office-loc-final-city-${i}`)?.value;
+            const officeState = document.getElementById(`office-loc-final-state-${i}`)?.value;
+            const officeLat = document.getElementById(`office-loc-final-lat-${i}`)?.value;
+            const officeLng = document.getElementById(`office-loc-final-lng-${i}`)?.value;
+            const officeSubnets = document.getElementById(`office-loc-final-subnets-${i}`)?.value?.split(',') || [];
+            
+            if (officeName && officeSubnets.length > 0) {
+              // Check if this office exists in library
+              const existingOffice = officeLibrary.find(o => o.name === officeName);
+              
+              if (!existingOffice && officeCity) {
+                // Add to library
+                try {
+                  const response = await apiPost('/offices', {
+                    name: officeName,
+                    city: officeCity,
+                    state: officeState,
+                    latitude: officeLat ? parseFloat(officeLat) : null,
+                    longitude: officeLng ? parseFloat(officeLng) : null
+                  });
+                  
+                  if (response.id) {
+                    officeLibrary.push(response);
+                    console.log(`Added office to library: ${officeName}`);
+                  }
+                } catch (err) {
+                  console.log(`Office may already exist: ${officeName}`, err);
+                }
+              }
+              
+              // Create subnet mappings for this office
+              officeSubnets.forEach(subnet => {
+                if (subnet.trim()) {
+                  subnetMappings.push({
+                    subnet: subnet.trim(),
+                    office_name: officeName,
+                    mapping_type: 'office'
+                  });
+                }
               });
-            });
+            }
           }
         } else {
           // EXCEL IMPORT: Original logic
@@ -2038,41 +2071,136 @@
     
     function renderSubnetMappingListAtera() {
       const analysis = ateraAnalysis || {};
-      const officeSubnets = analysis.office_subnets || [];
+      const officeLocations = analysis.office_locations || [];
       const officeCount = analysis.office_device_count || 0;
       const remoteCount = analysis.remote_device_count || 0;
-      const autoCreatedOffice = analysis.autoCreatedOffice;
       const displayClientName = clientName || 'this client';
       
       let html = ``;
       
-      // Office devices section
-      if (officeCount > 0) {
-        const autoSelectedNote = autoCreatedOffice 
-          ? `<div style="font-size: 12px; color: #22c55e; margin-top: 8px;">✓ Auto-selected based on customer address from Atera</div>` 
-          : '';
-        html += `
-          <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-              <span style="font-size: 20px;">🏢</span>
-              <strong style="color: #22c55e;">${officeCount} Office Devices</strong>
+      // Multiple office locations section
+      if (officeLocations.length > 0) {
+        // Info message for multiple offices
+        if (officeLocations.length > 1) {
+          html += `
+            <div style="background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #93c5fd;">
+              <strong>📍 ${officeLocations.length} separate office locations detected.</strong> 
+              Devices at different public IPs are at different physical locations. Review each below.
             </div>
-            <div style="font-size: 12px; color: #b8c5d6; margin-bottom: 12px;">
-              Detected subnets: <span style="font-family: monospace;">${officeSubnets.map(s => s + '.*').join(', ')}</span>
+          `;
+        }
+        
+        // Render each office location
+        officeLocations.forEach((loc, index) => {
+          const geoDetected = loc.city && loc.state;
+          const locationLabel = geoDetected 
+            ? `${loc.city}, ${loc.state}` 
+            : `Office ${index + 1}`;
+          const geoSource = loc.geo_source === 'ip-api.com' ? '(auto-detected from IP)' : '(location unknown)';
+          
+          html += `
+            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 20px;">🏢</span>
+                  <div>
+                    <strong style="color: #22c55e;">Office ${index + 1}: ${loc.device_count} Devices</strong>
+                    <div style="font-size: 11px; color: #64748b;">Public IP: ${loc.public_ip}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="font-size: 12px; color: #b8c5d6; margin-bottom: 12px;">
+                Subnets: <span style="font-family: monospace;">${loc.subnets.map(s => s + '.*').join(', ')}</span>
+              </div>
+              
+              <!-- Auto-detected location display -->
+              <div id="office-loc-display-${index}" style="margin-bottom: 12px;">
+                ${geoDetected ? `
+                  <div style="background: rgba(34, 197, 94, 0.15); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                      <div style="font-size: 14px; color: #4ade80; font-weight: 600;">📍 ${locationLabel}</div>
+                      <div style="font-size: 11px; color: #86efac;">${geoSource}</div>
+                    </div>
+                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="editOfficeLocation(${index})">✏️ Edit</button>
+                  </div>
+                ` : `
+                  <div style="background: rgba(251, 191, 36, 0.15); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                      <div style="font-size: 14px; color: #fbbf24; font-weight: 600;">⚠️ Location could not be detected</div>
+                      <div style="font-size: 11px; color: #fcd34d;">Please select or search for the correct location</div>
+                    </div>
+                    <button class="btn btn-warning" style="padding: 4px 10px; font-size: 12px;" onclick="editOfficeLocation(${index})">🔍 Set Location</button>
+                  </div>
+                `}
+              </div>
+              
+              <!-- Edit location form (hidden by default) -->
+              <div id="office-loc-edit-${index}" style="display: none; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 10px;">
+                  <div>
+                    <label style="font-size: 12px; color: #94a3b8;">Select from Library or Search:</label>
+                    <select id="office-loc-select-${index}" style="margin-top: 4px; width: 100%;" onchange="officeLocationSelectChanged(${index})">
+                      <option value="">-- Select existing office --</option>
+                      ${generateGroupedOfficeOptions(geoDetected ? loc.auto_name : '')}
+                      <option value="__search__">🔍 Search for new location...</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Search section (hidden until selected) -->
+                <div id="office-loc-search-${index}" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                  <label style="font-size: 12px; color: #94a3b8;">Search for city:</label>
+                  <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <input type="text" id="office-loc-search-input-${index}" placeholder="e.g., Chicago, IL" style="flex: 1;" value="${geoDetected ? locationLabel : ''}">
+                    <button class="btn btn-primary" style="padding: 6px 12px;" onclick="searchOfficeLocation(${index})">Search</button>
+                  </div>
+                  <div id="office-loc-search-results-${index}" style="margin-top: 8px;"></div>
+                </div>
+                
+                <!-- Manual entry (hidden until needed) -->
+                <div id="office-loc-manual-${index}" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label style="font-size: 11px; color: #94a3b8;">City</label>
+                      <input type="text" id="office-loc-city-${index}" placeholder="City" value="${loc.city || ''}">
+                    </div>
+                    <div>
+                      <label style="font-size: 11px; color: #94a3b8;">State</label>
+                      <input type="text" id="office-loc-state-${index}" placeholder="ST" value="${loc.state || ''}" maxlength="2" style="text-transform: uppercase;">
+                    </div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                    <div>
+                      <label style="font-size: 11px; color: #94a3b8;">Latitude</label>
+                      <input type="text" id="office-loc-lat-${index}" placeholder="Latitude" value="${loc.latitude || ''}">
+                    </div>
+                    <div>
+                      <label style="font-size: 11px; color: #94a3b8;">Longitude</label>
+                      <input type="text" id="office-loc-lng-${index}" placeholder="Longitude" value="${loc.longitude || ''}">
+                    </div>
+                  </div>
+                </div>
+                
+                <div style="margin-top: 10px; display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="cancelEditOfficeLocation(${index})">Cancel</button>
+                  <button class="btn btn-success" style="padding: 4px 10px; font-size: 12px;" onclick="confirmOfficeLocation(${index})">✓ Confirm</button>
+                </div>
+              </div>
+              
+              <!-- Hidden inputs to store final values -->
+              <input type="hidden" id="office-loc-final-name-${index}" value="${loc.auto_name || ''}">
+              <input type="hidden" id="office-loc-final-city-${index}" value="${loc.city || ''}">
+              <input type="hidden" id="office-loc-final-state-${index}" value="${loc.state || ''}">
+              <input type="hidden" id="office-loc-final-lat-${index}" value="${loc.latitude || ''}">
+              <input type="hidden" id="office-loc-final-lng-${index}" value="${loc.longitude || ''}">
+              <input type="hidden" id="office-loc-final-subnets-${index}" value="${loc.subnets.join(',')}">
             </div>
-            <div class="form-group" style="margin: 0;">
-              <label style="color: #22c55e;">ASSIGN THESE DEVICES TO OFFICE LOCATION:</label>
-              <div style="font-size: 12px; color: #b8c5d6; margin-bottom: 8px;">Select the office where <strong>${displayClientName}</strong>'s devices on these subnets are located.</div>
-              <select id="atera-office-location" style="margin-top: 4px;">
-                ${generateGroupedOfficeOptions(autoCreatedOffice?.name)}
-              </select>
-              ${autoSelectedNote}
-            </div>
-          </div>
-        `;
+          `;
+        });
       }
       
-      // Remote workers section
+      // Remote workers section (unchanged)
       if (remoteCount > 0) {
         html += `
           <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 16px;">
@@ -2082,13 +2210,198 @@
             </div>
             <div style="font-size: 13px; color: #b8c5d6;">
               These devices are on private networks not associated with the office. 
-              They will be geolocated using their public IP address (ReportedFromIP from Atera).
+              They will be geolocated using their public IP address.
             </div>
           </div>
         `;
       }
       
       document.getElementById('subnet-mapping-list').innerHTML = html;
+    }
+    
+    // Office location editing functions
+    function editOfficeLocation(index) {
+      document.getElementById(`office-loc-display-${index}`).style.display = 'none';
+      document.getElementById(`office-loc-edit-${index}`).style.display = 'block';
+    }
+    
+    function cancelEditOfficeLocation(index) {
+      document.getElementById(`office-loc-display-${index}`).style.display = 'block';
+      document.getElementById(`office-loc-edit-${index}`).style.display = 'none';
+      document.getElementById(`office-loc-search-${index}`).style.display = 'none';
+      document.getElementById(`office-loc-manual-${index}`).style.display = 'none';
+    }
+    
+    function officeLocationSelectChanged(index) {
+      const select = document.getElementById(`office-loc-select-${index}`);
+      const searchDiv = document.getElementById(`office-loc-search-${index}`);
+      const manualDiv = document.getElementById(`office-loc-manual-${index}`);
+      
+      if (select.value === '__search__') {
+        searchDiv.style.display = 'block';
+        manualDiv.style.display = 'none';
+      } else if (select.value) {
+        // Selected existing office - populate hidden fields
+        const office = officeLibrary.find(o => o.name === select.value);
+        if (office) {
+          document.getElementById(`office-loc-final-name-${index}`).value = office.name;
+          document.getElementById(`office-loc-final-city-${index}`).value = office.city || '';
+          document.getElementById(`office-loc-final-state-${index}`).value = office.state || '';
+          document.getElementById(`office-loc-final-lat-${index}`).value = office.latitude || '';
+          document.getElementById(`office-loc-final-lng-${index}`).value = office.longitude || '';
+        }
+        searchDiv.style.display = 'none';
+        manualDiv.style.display = 'none';
+      } else {
+        searchDiv.style.display = 'none';
+        manualDiv.style.display = 'none';
+      }
+    }
+    
+    async function searchOfficeLocation(index) {
+      const input = document.getElementById(`office-loc-search-input-${index}`);
+      const resultsDiv = document.getElementById(`office-loc-search-results-${index}`);
+      const query = input.value.trim();
+      
+      if (!query) {
+        resultsDiv.innerHTML = '<div style="color: #f87171; font-size: 12px;">Please enter a city name</div>';
+        return;
+      }
+      
+      resultsDiv.innerHTML = '<div style="color: #94a3b8; font-size: 12px;">Searching...</div>';
+      
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`);
+        const results = await response.json();
+        
+        if (results.length === 0) {
+          resultsDiv.innerHTML = `
+            <div style="color: #fbbf24; font-size: 12px; margin-bottom: 8px;">No results found. Enter manually:</div>
+          `;
+          document.getElementById(`office-loc-manual-${index}`).style.display = 'block';
+          return;
+        }
+        
+        let html = '<div style="font-size: 12px; color: #94a3b8; margin-bottom: 6px;">Select a result:</div>';
+        results.forEach((r, i) => {
+          const city = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || '';
+          const state = r.address?.state || '';
+          const stateCode = getStateCode(state);
+          const displayName = city && stateCode ? `${city}, ${stateCode}` : r.display_name.split(',').slice(0,2).join(',');
+          
+          html += `
+            <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 4px; cursor: pointer; font-size: 13px;"
+                 onclick="selectSearchResult(${index}, '${displayName.replace(/'/g, "\\'")}', '${city.replace(/'/g, "\\'")}', '${stateCode}', ${r.lat}, ${r.lon})">
+              📍 ${displayName}
+              <div style="font-size: 10px; color: #64748b;">${r.display_name}</div>
+            </div>
+          `;
+        });
+        
+        html += `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="document.getElementById('office-loc-manual-${index}').style.display='block'">
+              Enter manually instead
+            </button>
+          </div>
+        `;
+        
+        resultsDiv.innerHTML = html;
+      } catch (err) {
+        resultsDiv.innerHTML = `<div style="color: #f87171; font-size: 12px;">Search error: ${err.message}</div>`;
+        document.getElementById(`office-loc-manual-${index}`).style.display = 'block';
+      }
+    }
+    
+    function getStateCode(stateName) {
+      const stateMap = {
+        'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+        'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+        'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+        'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+        'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+        'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+        'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+        'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+        'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+        'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY',
+        'District of Columbia': 'DC'
+      };
+      return stateMap[stateName] || (stateName ? stateName.substring(0, 2).toUpperCase() : '');
+    }
+    
+    function selectSearchResult(index, name, city, state, lat, lng) {
+      document.getElementById(`office-loc-final-name-${index}`).value = name;
+      document.getElementById(`office-loc-final-city-${index}`).value = city;
+      document.getElementById(`office-loc-final-state-${index}`).value = state;
+      document.getElementById(`office-loc-final-lat-${index}`).value = lat;
+      document.getElementById(`office-loc-final-lng-${index}`).value = lng;
+      
+      // Update display
+      document.getElementById(`office-loc-display-${index}`).innerHTML = `
+        <div style="background: rgba(34, 197, 94, 0.15); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 14px; color: #4ade80; font-weight: 600;">📍 ${name}</div>
+            <div style="font-size: 11px; color: #86efac;">(selected from search)</div>
+          </div>
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="editOfficeLocation(${index})">✏️ Edit</button>
+        </div>
+      `;
+      
+      cancelEditOfficeLocation(index);
+    }
+    
+    function confirmOfficeLocation(index) {
+      const select = document.getElementById(`office-loc-select-${index}`);
+      
+      if (select.value && select.value !== '__search__') {
+        // Using existing office from library
+        const office = officeLibrary.find(o => o.name === select.value);
+        if (office) {
+          document.getElementById(`office-loc-final-name-${index}`).value = office.name;
+          document.getElementById(`office-loc-final-city-${index}`).value = office.city || '';
+          document.getElementById(`office-loc-final-state-${index}`).value = office.state || '';
+          document.getElementById(`office-loc-final-lat-${index}`).value = office.latitude || '';
+          document.getElementById(`office-loc-final-lng-${index}`).value = office.longitude || '';
+          
+          document.getElementById(`office-loc-display-${index}`).innerHTML = `
+            <div style="background: rgba(34, 197, 94, 0.15); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 14px; color: #4ade80; font-weight: 600;">📍 ${office.name}</div>
+                <div style="font-size: 11px; color: #86efac;">(from library)</div>
+              </div>
+              <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="editOfficeLocation(${index})">✏️ Edit</button>
+            </div>
+          `;
+        }
+      } else {
+        // Check if manual entry has values
+        const manualCity = document.getElementById(`office-loc-city-${index}`)?.value?.trim();
+        const manualState = document.getElementById(`office-loc-state-${index}`)?.value?.trim()?.toUpperCase();
+        const manualLat = document.getElementById(`office-loc-lat-${index}`)?.value?.trim();
+        const manualLng = document.getElementById(`office-loc-lng-${index}`)?.value?.trim();
+        
+        if (manualCity) {
+          const name = manualState ? `${manualCity}, ${manualState}` : manualCity;
+          document.getElementById(`office-loc-final-name-${index}`).value = name;
+          document.getElementById(`office-loc-final-city-${index}`).value = manualCity;
+          document.getElementById(`office-loc-final-state-${index}`).value = manualState;
+          document.getElementById(`office-loc-final-lat-${index}`).value = manualLat;
+          document.getElementById(`office-loc-final-lng-${index}`).value = manualLng;
+          
+          document.getElementById(`office-loc-display-${index}`).innerHTML = `
+            <div style="background: rgba(34, 197, 94, 0.15); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 14px; color: #4ade80; font-weight: 600;">📍 ${name}</div>
+                <div style="font-size: 11px; color: #86efac;">(manually entered)</div>
+              </div>
+              <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="editOfficeLocation(${index})">✏️ Edit</button>
+            </div>
+          `;
+        }
+      }
+      
+      cancelEditOfficeLocation(index);
     }
     
     function generateGroupedOfficeOptions(selectedValue = '', suggestedOffices = null) {
@@ -3491,13 +3804,7 @@
         // Store analysis for later use
         ateraAnalysis = data.analysis;
         
-        // Auto-create office from customer address if office devices detected
-        const customer = ateraCustomers.find(c => c.id === selectedAteraCustomerId);
-        let autoCreatedOffice = null;
-        if (customer && data.analysis.office_device_count > 0) {
-          btn.innerHTML = '<span class="loading-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;"></span> Creating office location...';
-          autoCreatedOffice = await autoCreateOfficeFromAtera(customer);
-        }
+        // Office locations are now auto-geolocated by the API using their public IPs
         
         // Convert Atera devices to our format, including the new fields
         pendingImport = data.devices.map((d, idx) => ({
@@ -3518,34 +3825,53 @@
         const analysis = data.analysis;
         const officeCount = analysis.office_device_count || 0;
         const remoteCount = analysis.remote_device_count || 0;
-        const officeSubnets = analysis.office_subnets || [];
+        const officeLocations = analysis.office_locations || [];
         
         let previewHtml = `
           <div style="margin-bottom: 12px; padding: 10px; background: rgba(96, 165, 250, 0.1); border-radius: 8px;">
             <strong style="color: #60a5fa;">🔗 Data from Atera API</strong>
-            <div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;">Auto-detected office vs remote based on shared public IPs</div>
+            <div style="font-size: 12px; color: #b8c5d6; margin-top: 4px;">Office locations auto-detected and geolocated by public IP</div>
           </div>
         `;
         
-        if (officeCount > 0) {
-          const officeNote = autoCreatedOffice 
-            ? `<div style="font-size: 12px; color: #22c55e; margin-top: 8px;">✓ Office location "${autoCreatedOffice.name}" auto-created from Atera address</div>`
-            : '';
-          previewHtml += `
-            <div style="margin-bottom: 12px; padding: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <span style="font-size: 18px;">🏢</span>
-                <strong style="color: #22c55e;">${officeCount} Office Devices Detected</strong>
+        if (officeLocations.length > 0) {
+          // Show each office location with its auto-detected city
+          officeLocations.forEach((loc, index) => {
+            const cityDisplay = loc.city && loc.state 
+              ? `<span style="color: #4ade80; font-weight: 600;">${loc.city}, ${loc.state}</span>` 
+              : `<span style="color: #fbbf24;">Location pending</span>`;
+            const geoNote = loc.geo_source === 'ip-api.com' 
+              ? `<span style="font-size: 10px; color: #86efac;">(auto-detected from IP)</span>`
+              : `<span style="font-size: 10px; color: #fbbf24;">(will set in next step)</span>`;
+            
+            previewHtml += `
+              <div style="margin-bottom: 12px; padding: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🏢</span>
+                    <div>
+                      <strong style="color: #22c55e;">Office ${index + 1}: ${loc.device_count} Devices</strong>
+                      <div style="font-size: 11px; color: #64748b;">Public IP: ${loc.public_ip}</div>
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    ${cityDisplay} ${geoNote}
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: #b8c5d6;">
+                  Subnets: <span style="font-family: monospace; color: #22c55e;">${loc.subnets.map(s => s + '.*').join(', ')}</span>
+                </div>
               </div>
-              <div style="font-size: 12px; color: #b8c5d6;">
-                Auto-detected office subnets: <span style="font-family: monospace; color: #22c55e;">${officeSubnets.map(s => s + '.*').join(', ')}</span>
+            `;
+          });
+          
+          if (officeLocations.length > 1) {
+            previewHtml += `
+              <div style="font-size: 12px; color: #93c5fd; padding: 8px; background: rgba(96, 165, 250, 0.1); border-radius: 6px; margin-bottom: 12px;">
+                📍 ${officeLocations.length} separate office locations will be mapped in the next step
               </div>
-              <div style="font-size: 11px; color: #b8c5d6; margin-top: 4px;">
-                (3+ devices sharing the same public IP = office location)
-              </div>
-              ${officeNote}
-            </div>
-          `;
+            `;
+          }
         }
         
         if (remoteCount > 0) {

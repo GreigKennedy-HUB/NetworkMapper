@@ -49,6 +49,45 @@ def convert_decimals(obj):
                 obj[key] = float(value)
     return obj
 
+def geolocate_ip(ip_address):
+    """Geolocate a public IP address using ip-api.com (free, no API key needed)"""
+    try:
+        response = requests.get(f"http://ip-api.com/json/{ip_address}?fields=status,city,regionName,country,lat,lon", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 'success':
+                # Extract state code from regionName (e.g., "Indiana" -> need to map to "IN")
+                state_name = data.get('regionName', '')
+                state_code = get_state_code(state_name)
+                return {
+                    'city': data.get('city', ''),
+                    'state': state_code,
+                    'state_name': state_name,
+                    'country': data.get('country', ''),
+                    'latitude': data.get('lat'),
+                    'longitude': data.get('lon')
+                }
+    except Exception as e:
+        print(f"Geolocation error for {ip_address}: {e}")
+    return None
+
+def get_state_code(state_name):
+    """Convert state name to state code"""
+    state_map = {
+        'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+        'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+        'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+        'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+        'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+        'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+        'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+        'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+        'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+        'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY',
+        'District of Columbia': 'DC'
+    }
+    return state_map.get(state_name, state_name[:2].upper() if state_name else '')
+
 # ============================================
 # Atera Configuration
 # ============================================
@@ -564,17 +603,68 @@ def atera_customer_devices(customer_id):
                     'subnets': list(subnets_at_location)
                 }
         
+        # Build office_locations array - each unique public IP = separate office
+        # Geolocate each office's public IP
+        office_locations = []
+        import time
+        for public_ip, info in office_public_ips.items():
+            # Geolocate this office's public IP
+            geo = geolocate_ip(public_ip)
+            
+            office_loc = {
+                'public_ip': public_ip,
+                'device_count': info['device_count'],
+                'subnets': info['subnets'],
+                'devices': []  # Will populate after classification
+            }
+            
+            # Add geolocation data if available
+            if geo:
+                office_loc['city'] = geo['city']
+                office_loc['state'] = geo['state']
+                office_loc['state_name'] = geo['state_name']
+                office_loc['country'] = geo['country']
+                office_loc['latitude'] = geo['latitude']
+                office_loc['longitude'] = geo['longitude']
+                office_loc['auto_name'] = f"{geo['city']}, {geo['state']}" if geo['city'] and geo['state'] else geo['city'] or f"Office at {public_ip}"
+                office_loc['geo_source'] = 'ip-api.com'
+            else:
+                office_loc['city'] = ''
+                office_loc['state'] = ''
+                office_loc['latitude'] = None
+                office_loc['longitude'] = None
+                office_loc['auto_name'] = f"Office at {public_ip}"
+                office_loc['geo_source'] = 'none'
+            
+            office_locations.append(office_loc)
+            
+            # Rate limit: ip-api.com allows 45 requests per minute for free tier
+            # Add small delay between requests
+            time.sleep(0.1)
+        
+        # Sort by device count descending (largest office first)
+        office_locations.sort(key=lambda x: x['device_count'], reverse=True)
+        
         # Classify each device
         for device in devices:
             device_subnet = '.'.join(device['ip'].split('.')[:3])
             
             if device_subnet in office_subnets:
                 device['location_type'] = 'office'
+                # Find which office this device belongs to
+                for idx, loc in enumerate(office_locations):
+                    if device.get('reported_from_ip') == loc['public_ip']:
+                        device['office_index'] = idx
+                        break
                 device['detection_reason'] = f"Subnet {device_subnet}.* is used by {len([d for d in devices if d['ip'].startswith(device_subnet + '.')])} devices at same location"
             else:
                 device['location_type'] = 'remote'
                 device['detection_reason'] = 'Private subnet not associated with office location'
                 # For remote devices, we'll use reported_from_ip for geolocation
+        
+        # Populate devices array for each office_location
+        for loc in office_locations:
+            loc['devices'] = [d for d in devices if d.get('reported_from_ip') == loc['public_ip'] and d.get('location_type') == 'office']
         
         return jsonify({
             'customer_id': customer_id,
@@ -583,6 +673,8 @@ def atera_customer_devices(customer_id):
             'analysis': {
                 'office_public_ips': office_public_ips,
                 'office_subnets': list(office_subnets),
+                'office_locations': office_locations,
+                'office_location_count': len(office_locations),
                 'office_device_count': len([d for d in devices if d.get('location_type') == 'office']),
                 'remote_device_count': len([d for d in devices if d.get('location_type') == 'remote']),
                 'detection_threshold': OFFICE_THRESHOLD
