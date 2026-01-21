@@ -327,6 +327,15 @@
             <button class="btn btn-secondary active" id="btn-locations" onclick="setViewMode('locations')">📍 Location View</button>
             <button class="btn btn-secondary" id="btn-devices" onclick="setViewMode('devices')">🔘 Device View</button>
             <button class="btn btn-secondary" onclick="refreshMap()" title="Fix map display issues">🔄 Refresh Map</button>
+            <select id="map-theme-select" onchange="changeMapTheme(this.value)" title="Change map style" style="padding: 6px 10px; border-radius: 6px; background: #334155; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; cursor: pointer;">
+              <option value="cartodb-dark">🌑 Dark</option>
+              <option value="cartodb-voyager">🗺️ Voyager</option>
+              <option value="cartodb-positron">⬜ Light</option>
+              <option value="osm">🌍 OpenStreetMap</option>
+              <option value="esri-street">🏙️ Esri Street</option>
+              <option value="esri-satellite">🛰️ Satellite</option>
+              <option value="stamen-terrain">⛰️ Terrain</option>
+            </select>
             <button class="btn btn-secondary" onclick="openModal('subnetModal')" style="margin-left: auto;">⚙️ Edit Mappings</button>
           </div>
           <div class="map-container"><div id="map"></div></div>
@@ -479,7 +488,7 @@
         
         <div id="import-preview" style="display: none; margin-top: 20px;">
           <h4 style="margin-bottom: 12px; color: #22c55e;">✓ Found <span id="preview-count">0</span> devices</h4>
-          <div style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; font-size: 12px;"><div id="preview-subnets"></div></div>
+          <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; font-size: 12px;"><div id="preview-subnets"></div></div>
         </div>
         <div id="delta-preview" style="display: none;"></div>
         <div class="modal-actions">
@@ -590,7 +599,7 @@
             <div id="remote-only-summary" style="color: #b8c5d6; font-size: 14px;"></div>
           </div>
           
-          <div id="remote-only-list" style="max-height: 350px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px;"></div>
+          <div id="remote-only-list" style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px;"></div>
           
           <div class="modal-actions" style="margin-top: 20px;">
             <button class="btn btn-secondary" onclick="selectStep2Mode('full')">← Switch to Full Mapping</button>
@@ -1002,12 +1011,79 @@
     // Map Setup
     // ============================================
     const map = L.map('map').setView([39.8283, -98.5795], 4);
-    const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+    
+    // Map tile providers
+    const mapTileProviders = {
+      'cartodb-dark': {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        options: { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }
+      },
+      'cartodb-voyager': {
+        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        options: { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }
+      },
+      'cartodb-positron': {
+        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        options: { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }
+      },
+      'osm': {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        options: { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 }
+      },
+      'esri-street': {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        options: { attribution: '&copy; Esri', maxZoom: 18 }
+      },
+      'esri-satellite': {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        options: { attribution: '&copy; Esri', maxZoom: 18 }
+      },
+      'stamen-terrain': {
+        url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png',
+        options: { attribution: '&copy; Stamen Design &copy; OpenStreetMap', maxZoom: 18 }
+      }
+    };
+    
+    let currentTileLayer = L.tileLayer(mapTileProviders['cartodb-dark'].url, mapTileProviders['cartodb-dark'].options).addTo(map);
     let markers = L.layerGroup().addTo(map);
     
+    function changeMapTheme(theme) {
+      if (!mapTileProviders[theme]) return;
+      
+      // Remove current tile layer
+      if (currentTileLayer) {
+        map.removeLayer(currentTileLayer);
+      }
+      
+      // Add new tile layer
+      const provider = mapTileProviders[theme];
+      currentTileLayer = L.tileLayer(provider.url, provider.options).addTo(map);
+      
+      // Re-add event listeners for map refresh
+      currentTileLayer.on('loading', () => { setTimeout(() => map.invalidateSize(), 50); });
+      currentTileLayer.on('load', () => { map.invalidateSize(); });
+      
+      // Save preference
+      try { localStorage.setItem('mapTheme', theme); } catch(e) {}
+      
+      // Refresh map
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+    
+    // Restore saved theme preference
+    try {
+      const savedTheme = localStorage.getItem('mapTheme');
+      if (savedTheme && mapTileProviders[savedTheme]) {
+        document.getElementById('map-theme-select').value = savedTheme;
+        if (savedTheme !== 'cartodb-dark') {
+          changeMapTheme(savedTheme);
+        }
+      }
+    } catch(e) {}
+    
     // Fix map when tiles start loading
-    tileLayer.on('loading', () => { setTimeout(() => map.invalidateSize(), 50); });
-    tileLayer.on('load', () => { map.invalidateSize(); });
+    currentTileLayer.on('loading', () => { setTimeout(() => map.invalidateSize(), 50); });
+    currentTileLayer.on('load', () => { map.invalidateSize(); });
     
     function refreshMap() {
       map.invalidateSize();
@@ -1042,19 +1118,45 @@
     // Store geolocation data for public IPs
     let publicIPGeoData = {};
     
+    // State name to code mapping for consistent formatting
+    const stateNameToCode = {
+      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+      'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+      'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+      'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+      'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+      'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+      'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+      'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY',
+      'District of Columbia': 'DC'
+    };
+    
+    function getStateCodeFromName(stateName) {
+      if (!stateName) return '';
+      // Check if it's already a code (2 chars)
+      if (stateName.length === 2) return stateName.toUpperCase();
+      // Look up in map
+      return stateNameToCode[stateName] || stateName.substring(0, 2).toUpperCase();
+    }
+    
     async function geolocatePublicIP(ip) {
       try {
         const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country,lat,lon`);
         if (!response.ok) return null;
         const data = await response.json();
         if (data.status === 'success') {
+          const stateCode = getStateCodeFromName(data.regionName);
+          const locationName = data.city && stateCode ? `${data.city}, ${stateCode}` : data.city || data.regionName;
           return {
             city: data.city,
-            region: data.regionName,
+            region: stateCode,  // Now returns state code, not full name
+            regionName: data.regionName,  // Keep full name for reference
             country: data.country,
             lat: data.lat,
             lng: data.lon,
-            locationName: `${data.city}, ${data.regionName}`
+            locationName: locationName
           };
         }
       } catch (e) { console.warn('Geolocation failed for', ip, e); }
@@ -1119,14 +1221,80 @@
       return { classification: 'Unknown', location: 'Unmapped', lat: null, lng: null };
     }
     
+    // Normalize location name for consistent grouping
+    function normalizeLocationName(name) {
+      if (!name) return 'Unmapped';
+      
+      // Extract city and state parts
+      const parts = name.split(',').map(p => p.trim());
+      if (parts.length < 2) return name;
+      
+      const city = parts[0];
+      let state = parts[1];
+      
+      // Convert full state name to code if needed
+      state = getStateCodeFromName(state);
+      
+      return `${city}, ${state}`;
+    }
+    
+    // Check if two location names refer to the same place
+    function locationsMatch(loc1, loc2) {
+      if (!loc1 || !loc2) return false;
+      const norm1 = normalizeLocationName(loc1);
+      const norm2 = normalizeLocationName(loc2);
+      return norm1.toLowerCase() === norm2.toLowerCase();
+    }
+    
     function getDevicesByLocation() {
       const groups = {};
+      const locationMapping = {}; // Maps variant names to canonical name
+      
       devices.forEach(d => {
-        const loc = d.location || 'Unmapped';
-        if (!groups[loc]) groups[loc] = { name: loc, devices: [], classification: d.classification, lat: d.lat, lng: d.lng, subnets: new Set() };
-        groups[loc].devices.push(d);
-        groups[loc].subnets.add(getSubnetFromIP(d.ip));
+        const rawLoc = d.location || 'Unmapped';
+        const normalizedLoc = normalizeLocationName(rawLoc);
+        
+        // Check if we already have a group for this normalized location
+        let canonicalLoc = locationMapping[normalizedLoc.toLowerCase()];
+        
+        if (!canonicalLoc) {
+          // Check against existing groups
+          for (const existingLoc in groups) {
+            if (locationsMatch(existingLoc, rawLoc)) {
+              canonicalLoc = existingLoc;
+              break;
+            }
+          }
+          
+          // If still no match, use the normalized name as canonical
+          if (!canonicalLoc) {
+            canonicalLoc = normalizedLoc;
+          }
+          
+          locationMapping[normalizedLoc.toLowerCase()] = canonicalLoc;
+        }
+        
+        if (!groups[canonicalLoc]) {
+          groups[canonicalLoc] = { 
+            name: canonicalLoc, 
+            devices: [], 
+            classification: d.classification, 
+            lat: d.lat, 
+            lng: d.lng, 
+            subnets: new Set() 
+          };
+        }
+        
+        groups[canonicalLoc].devices.push(d);
+        groups[canonicalLoc].subnets.add(getSubnetFromIP(d.ip));
+        
+        // Update lat/lng if this device has coordinates and group doesn't
+        if (d.lat && d.lng && (!groups[canonicalLoc].lat || !groups[canonicalLoc].lng)) {
+          groups[canonicalLoc].lat = d.lat;
+          groups[canonicalLoc].lng = d.lng;
+        }
       });
+      
       return Object.values(groups);
     }
     
@@ -1757,7 +1925,7 @@
       if (remoteDevices.length > 0) {
         remoteDevices.forEach(d => {
           const geoInfo = d.reported_from_ip && publicIPGeoData[d.reported_from_ip];
-          const locationText = geoInfo ? `${geoInfo.city}, ${geoInfo.region}` : (d.reported_from_ip || 'Unknown location');
+          const locationText = geoInfo ? geoInfo.locationName : (d.reported_from_ip || 'Unknown location');
           listHtml += `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
               <div>
@@ -1794,7 +1962,7 @@
       devices = devices.map(d => {
         if (d.reported_from_ip && publicIPGeoData[d.reported_from_ip]) {
           const geo = publicIPGeoData[d.reported_from_ip];
-          return { ...d, lat: geo.lat, lng: geo.lng, location: `${geo.city}, ${geo.region}` };
+          return { ...d, lat: geo.lat, lng: geo.lng, location: geo.locationName, geolocated: true };
         }
         return d;
       });
@@ -1981,7 +2149,20 @@
         
         // Classify devices
         if (importSource === 'atera' && ateraAnalysis) {
+          console.log('=== ATERA CLASSIFICATION DEBUG ===');
+          console.log('Subnet mappings:', subnetMappings);
+          console.log('Pending devices count:', devices.length);
+          
           devices = devices.map(d => ({ ...d, ...classifyDeviceAtera(d) }));
+          
+          // Debug summary
+          const officeDevices = devices.filter(d => d.classification === 'Office');
+          const remoteDevices = devices.filter(d => d.classification === 'Remote/Home');
+          const unmappedDevices = devices.filter(d => d.classification === 'Unknown');
+          console.log('Office devices:', officeDevices.length);
+          console.log('Remote devices:', remoteDevices.length);
+          console.log('Unmapped devices:', unmappedDevices.length);
+          console.log('=== END DEBUG ===');
         } else {
           devices = devices.map(d => ({ ...d, ...classifyDevice(d.ip) }));
         }
@@ -2467,18 +2648,26 @@
     
     function classifyDeviceAtera(device) {
       // For Atera imports, use the pre-detected location_type
+      const deviceSubnet = getSubnetFromIP(device.ip);
+      
       if (device.location_type === 'office') {
         // Find the office from subnet mappings
-        const deviceSubnet = getSubnetFromIP(device.ip);
-        const mapping = subnetMappings.find(m => m.subnet === deviceSubnet);
+        const mapping = subnetMappings.find(m => {
+          const mappingSubnet = normalizeSubnet(m.subnet);
+          return mappingSubnet === deviceSubnet || device.ip.startsWith(mappingSubnet + '.');
+        });
+        
         if (mapping) {
           const office = officeLibrary.find(o => o.name === mapping.office_name);
+          console.log(`[Atera] Office device ${device.name} (${device.ip}) -> ${mapping.office_name}`);
           return {
             classification: 'Office',
             location: mapping.office_name,
             lat: office?.latitude,
             lng: office?.longitude
           };
+        } else {
+          console.warn(`[Atera] Office device ${device.name} (${device.ip}) has no mapping for subnet ${deviceSubnet}`);
         }
       }
       
@@ -2487,6 +2676,7 @@
         const geoIP = device.reported_from_ip;
         if (geoIP && publicIPGeoData[geoIP]) {
           const geo = publicIPGeoData[geoIP];
+          console.log(`[Atera] Remote device ${device.name} (${device.ip}) -> ${geo.locationName}`);
           return {
             classification: 'Remote/Home',
             location: geo.locationName,
@@ -2494,9 +2684,12 @@
             lng: geo.lng,
             geolocated: true
           };
+        } else {
+          console.warn(`[Atera] Remote device ${device.name} (${device.ip}) has no geolocation for ${geoIP}`);
         }
       }
       
+      console.warn(`[Atera] Unmapped device ${device.name} (${device.ip}), location_type=${device.location_type}`);
       return { classification: 'Unknown', location: 'Unmapped', lat: null, lng: null };
     }
     
@@ -3893,9 +4086,6 @@
         document.getElementById('preview-count').textContent = pendingImport.length;
         document.getElementById('btn-next-1').disabled = false;
         
-        // Store auto-created office for use in step 2
-        ateraAnalysis.autoCreatedOffice = autoCreatedOffice;
-        
         btn.innerHTML = '✓ ' + pendingImport.length + ' devices loaded';
         setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
         
@@ -3937,10 +4127,39 @@
     
     function getFilteredLocationGroups() {
       let g = getDevicesByLocation();
-      if (currentFilter === 'office') g = g.filter(x => x.classification === 'Office');
-      else if (currentFilter === 'remote') g = g.filter(x => x.classification === 'Remote/Home');
-      else if (currentFilter === 'unknown') g = g.filter(x => x.classification === 'Unknown');
-      return g;
+      
+      if (currentFilter === 'all') {
+        return g;
+      }
+      
+      // Filter devices WITHIN each group, not entire groups
+      const targetClassification = 
+        currentFilter === 'office' ? 'Office' :
+        currentFilter === 'remote' ? 'Remote/Home' :
+        currentFilter === 'unknown' ? 'Unknown' : null;
+      
+      if (!targetClassification) return g;
+      
+      console.log(`[Filter] Filtering for ${targetClassification}, ${g.length} groups total`);
+      
+      // Create new groups with only matching devices
+      const filteredGroups = [];
+      g.forEach(group => {
+        const matchingDevices = group.devices.filter(d => d.classification === targetClassification);
+        console.log(`[Filter] Group "${group.name}": ${matchingDevices.length}/${group.devices.length} devices match, lat=${group.lat}, lng=${group.lng}`);
+        if (matchingDevices.length > 0) {
+          filteredGroups.push({
+            ...group,
+            devices: matchingDevices,
+            classification: targetClassification,
+            // Recalculate subnets for filtered devices
+            subnets: new Set(matchingDevices.map(d => getSubnetFromIP(d.ip)))
+          });
+        }
+      });
+      
+      console.log(`[Filter] Result: ${filteredGroups.length} groups with matching devices`);
+      return filteredGroups;
     }
     
     function renderLocationList() {
