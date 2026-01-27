@@ -38,7 +38,7 @@ A web-based application for mapping network devices to physical office locations
 
 ---
 
-## Environment Status (2026-01-19)
+## Environment Status (2026-01-21)
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -46,9 +46,10 @@ A web-based application for mapping network devices to physical office locations
 | pip / Flask | ✅ Installed | flask, flask-cors, psycopg2-binary |
 | PostgreSQL | ✅ Running | Version 18, network_mapper_db created |
 | IIS | ✅ Running | Port 8080, NetworkMapper site |
-| Flask API | ✅ Running | Port 5050 |
+| Flask API | ✅ Running | Port 5050 (Task Scheduler auto-start) |
 | Atera API | ✅ Configured | API key in config.py |
 | Nominatim API | ✅ Integrated | City coordinate lookup |
+| ip-api.com | ✅ Integrated | Public IP geolocation |
 
 ---
 
@@ -63,7 +64,7 @@ A web-based application for mapping network devices to physical office locations
 | Office Library | Add/edit/remove office locations (PostgreSQL) | v8 |
 | City Search | Local database + Nominatim API + manual entry | v9 |
 | Subnet Mapping | Assign subnets to offices with Office/Remote type | v2 |
-| Interactive Map | Leaflet.js with CartoDB dark tiles | v1 |
+| Interactive Map | Leaflet.js with multiple tile options | v1/v12 |
 | Location Clustering | One marker per office showing device count | v2 |
 | Device View | Individual device markers (scattered) | v2 |
 | Filtering | Filter by All/Office/Remote/Unmapped | v1 |
@@ -85,21 +86,25 @@ A web-based application for mapping network devices to physical office locations
 | MA-1 Import | Bulk import office locations from MA-1 Excel | v10 |
 | Office Library Redesign | State-grouped collapsible sections | v10 |
 | City/State Schema | Separate city and state fields in database | v10 |
-| **MA-1 Edit/Retry** | Edit "not found" locations and retry geocoding | v11 |
-| **MA-1 Deduplication** | Merge duplicate city/state entries before import | v11 |
-| **Step 1 Workflow Redesign** | Two-path layout: Recommended (MA-1) vs Continue | v11 |
-| **Grouped Office Dropdown** | Offices grouped by state, recently added at top | v11 |
-| **Map Auto-Refresh** | Multiple strategies to fix tiles on first load | v11 |
-| **Improved Text Contrast** | Brighter text colors throughout for readability | v11 |
-| **API Data Truncation** | Handle long MAC addresses and other fields | v11 |
-| **Duplicate IP Handling** | Skip duplicate IPs when saving devices | v11 |
+| MA-1 Edit/Retry | Edit "not found" locations and retry geocoding | v11 |
+| MA-1 Deduplication | Merge duplicate city/state entries before import | v11 |
+| Step 1 Workflow Redesign | Two-path layout: Recommended (MA-1) vs Continue | v11 |
+| Grouped Office Dropdown | Offices grouped by state, recently added at top | v11 |
+| Map Auto-Refresh | Multiple strategies to fix tiles on first load | v11 |
+| Improved Text Contrast | Brighter text colors throughout for readability | v11 |
+| API Data Truncation | Handle long MAC addresses and other fields | v11 |
+| Duplicate IP Handling | Skip duplicate IPs when saving devices | v11 |
+| **Multi-Office Detection** | Detect separate offices by unique public IPs | v12 |
+| **Office Auto-Geolocation** | Auto-geolocate offices via public IP (ip-api.com) | v12 |
+| **Map Theme Switcher** | 7 themes: Dark, Voyager, Light, OSM, Esri, Satellite, Terrain | v12 |
+| **Location Name Normalization** | Consistent "City, ST" format, duplicate merging | v12 |
+| **Device-Level Filtering** | Filters work within mixed-classification locations | v12 |
 
 ### 🔄 In Progress
 
 | Feature | Description | Status |
 |---------|-------------|--------|
 | IIS Reverse Proxy | Route /api to Flask (currently using direct URL) | Optional improvement |
-| Task Scheduler | Auto-start Flask API on server reboot | To configure |
 
 ### ❌ Abandoned
 
@@ -107,6 +112,7 @@ A web-based application for mapping network devices to physical office locations
 |---------|-------------|--------|
 | SharePoint Integration | Store data in SharePoint Lists | JavaScript blocked in SP document viewer |
 | MA-1 "Remote" Detection | Skip sites with "remote" in name | "Remote" in MA-1 means remote office, not remote worker |
+| NSSM Service | Run Flask as Windows Service | Task Scheduler simpler and works |
 
 ### 📋 Planned / Future
 
@@ -115,7 +121,6 @@ A web-based application for mapping network devices to physical office locations
 | **Delete Companies** | Remove companies from the system | High |
 | Authentication | Track who created/modified data | Low |
 | Audit Trail | Log changes with timestamps and users | Low |
-| Map Themes | Light/dark/satellite tile options | Low |
 | Device Search | Search devices by name/IP across clients | Medium |
 | Subnet Auto-Suggest | Suggest office based on similar client subnets | Low |
 | Searchable Dropdown | Type-to-filter office selection | Medium |
@@ -167,6 +172,59 @@ A web-based application for mapping network devices to physical office locations
 | os | VARCHAR(200) | | Operating system |
 
 **Note:** `mac_address` column was expanded from VARCHAR(17) to VARCHAR(500) on 2026-01-19 to accommodate Atera's multiple MAC address format.
+
+---
+
+## Recent Changes (2026-01-21)
+
+### Multi-Office Auto-Geolocation
+- **Automatic office detection**: Devices grouped by public IP (3+ devices = office)
+- **Auto-geolocation**: Each office's public IP geolocated via ip-api.com
+- **Step 1 preview**: Shows each detected office with auto-detected city/state
+  - Example: "Office 1: 14 Devices - Millwood, WA (auto-detected from IP)"
+- **Step 2 mapping**: Pre-filled location for each office with Edit capability
+  - Can select from library, search Nominatim, or manually enter
+- **Library integration**: New offices auto-added to Office Library on completion
+
+### Map Theme Switcher
+- Dropdown selector next to Refresh Map button
+- **7 available themes:**
+  - 🌑 Dark (CartoDB Dark - default)
+  - 🗺️ Voyager (CartoDB Voyager)
+  - ⬜ Light (CartoDB Positron)
+  - 🌍 OpenStreetMap
+  - 🏙️ Esri Street
+  - 🛰️ Satellite (Esri Imagery)
+  - ⛰️ Terrain (Stamen)
+- Theme preference saved to localStorage
+
+### Location Naming Consistency
+- All locations now use "City, ST" format (state codes, not full names)
+- Frontend `geolocatePublicIP()` returns state codes matching API format
+- Added `stateNameToCode` mapping for US states
+- Eliminates "Portland, Oregon" vs "Portland, OR" inconsistencies
+
+### Duplicate Location Merging
+- `normalizeLocationName()` converts any format to "City, ST"
+- `locationsMatch()` detects equivalent location names
+- `getDevicesByLocation()` merges devices at same normalized location
+- Mixed office + remote devices at same city now grouped together
+
+### Device Filtering Fix
+- `getFilteredLocationGroups()` now filters devices WITHIN groups
+- Previously filtered entire groups by first device's classification
+- Now correctly shows 9 office devices in Portland when filtering by Office
+- Subnets recalculated for filtered device subset
+
+### UX Improvements
+- Removed nested scrolling in Step 1 preview area
+- Removed nested scrolling in Step 2 remote workers list
+- Content flows naturally within modal's main scroll area
+
+### Debug Logging
+- Device classification logged to console with details
+- Filter operations logged with group/device counts
+- Helps troubleshoot mapping issues
 
 ---
 
@@ -261,6 +319,7 @@ E:\Apps\NetworkMapper\          <- API Production
 - [x] Tables created
 - [x] API deployed and running on port 5050
 - [x] Atera API key configured
+- [x] Task Scheduler configured for API auto-start
 
 ### IIS Setup ✅ COMPLETE
 - [x] IIS running
@@ -280,7 +339,6 @@ E:\Apps\NetworkMapper\          <- API Production
 ### Team Rollout
 - [ ] Share URL with team (http://edcv-utl-idd1:8080)
 - [ ] Provide quick-start guide
-- [ ] Configure Task Scheduler for API auto-start
 
 ---
 
@@ -299,6 +357,7 @@ E:\Apps\NetworkMapper\          <- API Production
 | v9 | 2026-01-16 | Atera API, Nominatim, auto-office creation |
 | v10 | 2026-01-17 | MA-1 import, Office Library redesign, city/state schema |
 | v11 | 2026-01-19 | MA-1 edit/retry, deduplication, Step 1 redesign, grouped dropdowns, map auto-refresh, API fixes |
+| v12 | 2026-01-21 | Multi-office auto-geolocation, map themes, location merging fixes |
 
 ---
 
@@ -317,7 +376,7 @@ E:\Apps\NetworkMapper\          <- API Production
 | POST | /api/clients/:id/mappings | Save subnet mappings |
 | POST | /api/clients/:id/devices | Save devices |
 | GET | /api/atera/customers | List Atera customers |
-| GET | /api/atera/customers/:id/devices | Get devices for customer |
+| GET | /api/atera/customers/:id/devices | Get devices for customer (with auto-geolocation) |
 
 ---
 
@@ -326,8 +385,9 @@ E:\Apps\NetworkMapper\          <- API Production
 1. ~~**Map tile loading** - Occasionally fails; use Refresh Map button~~ **FIXED v11**
 2. **Large datasets** - Performance may degrade with 1000+ devices
 3. **Concurrent editing** - Last-write-wins (no real-time sync)
-4. **API auto-start** - Flask must be manually started after server reboot
+4. ~~**API auto-start** - Flask must be manually started after server reboot~~ **FIXED - Task Scheduler**
 5. **Direct API URL** - Uses http://edcv-utl-idd1:5050 (reverse proxy not configured)
+6. **ip-api.com rate limit** - Free tier allows 45 requests/minute (handled with delays)
 
 ---
 
@@ -373,6 +433,16 @@ Atera can return devices with duplicate IPs (multiple network adapters), causing
 
 **Resolution:** Track seen IPs and skip duplicates within same save batch.
 
+### Location Name Inconsistency (2026-01-21)
+API geolocation returned "Portland, OR" but frontend geolocation returned "Portland, Oregon", creating duplicate locations on the map.
+
+**Resolution:** Standardized both API and frontend to use state codes. Added location normalization and merging in `getDevicesByLocation()`.
+
+### Mixed Classification Filtering (2026-01-21)
+When Portland contained both office (9) and remote (2) devices, filtering by "Office" would hide the entire Portland location because the group's classification was based on the first device processed.
+
+**Resolution:** Updated `getFilteredLocationGroups()` to filter devices WITHIN groups, not filter entire groups by classification.
+
 ---
 
 ## Contacts / Resources
@@ -384,4 +454,5 @@ Atera can return devices with duplicate IPs (multiple network adapters), causing
 - **SheetJS Docs:** docs.sheetjs.com
 - **Flask Docs:** flask.palletsprojects.com
 - **Nominatim API:** nominatim.openstreetmap.org
+- **ip-api.com:** ip-api.com (public IP geolocation)
 - **Atera API Docs:** app.atera.com/apisettings (internal)
